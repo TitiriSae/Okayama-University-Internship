@@ -2,8 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
 
-TEST = 0
-
 ROUND = 3
 VAL_RANGE = 100
 
@@ -18,7 +16,8 @@ def generate_instance(N, M):
     Generates randomly a symetrical adjacency matrix (with zero diagonal) and the initial value of the nodes.
     """
     assert N-1 <= M <= (N*(N-1))/2
-
+    """
+    
     connected = False
     while not connected :
         # Randomly place N nodes on the unit square
@@ -47,6 +46,52 @@ def generate_instance(N, M):
 
         G = nx.from_numpy_array(adjacency_matrix)
         connected = nx.is_connected(G)
+    """
+
+
+
+    # Coordonnées uniformes dans [0,1]²
+    pos = np.random.random((N, 2))
+
+    # Toutes les arêtes pondérées par leur distance
+    edges = []
+    for i in range(N):
+        for j in range(i + 1, N):
+            d = np.linalg.norm(pos[i] - pos[j])
+            edges.append((d, i, j))
+
+    edges.sort(key=lambda x: x[0])
+
+    # Graphe complet pondéré
+    G_complete = nx.Graph()
+    G_complete.add_nodes_from(range(N))
+    for d, i, j in edges:
+        G_complete.add_edge(i, j, weight=d)
+
+    # Arbre couvrant minimal (Kruskal)
+    G = nx.minimum_spanning_tree(G_complete, algorithm="kruskal")
+
+    # Nombre actuel d'arêtes
+    nb_edges = G.number_of_edges()
+
+    # Ajouter les plus courtes arêtes restantes
+    for d, i, j in edges:
+        if nb_edges == M:
+            break
+        if not G.has_edge(i, j):
+            G.add_edge(i, j, weight=d)
+            nb_edges += 1
+
+    A = nx.to_numpy_array(G, dtype=int)
+
+    return G, pos, A
+
+
+
+
+
+
+
 
     #random initial values
     initial_values = VAL_RANGE*np.random.rand(N)
@@ -236,3 +281,44 @@ plot(data)
 
 
 
+def gen(N, M):
+    # Coordonnées uniformes dans [0,1]²
+    pos = np.random.random((N, 2))
+
+    # Toutes les arêtes pondérées par leur distance
+    edges = []
+    for i in range(N):
+        for j in range(i + 1, N):
+            d = np.linalg.norm(pos[i] - pos[j])
+            edges.append((d, i, j))
+
+    edges.sort(key=lambda x: x[0])
+
+    # Graphe complet pondéré
+    G_complete = nx.Graph()
+    G_complete.add_nodes_from(range(N))
+    for d, i, j in edges:
+        G_complete.add_edge(i, j, weight=d)
+
+    # Arbre couvrant minimal (Kruskal)
+    G = nx.minimum_spanning_tree(G_complete, algorithm="kruskal")
+
+    # Nombre actuel d'arêtes
+    nb_edges = G.number_of_edges()
+
+    # Ajouter les plus courtes arêtes restantes
+    for d, i, j in edges:
+        if nb_edges == M:
+            break
+        if not G.has_edge(i, j):
+            G.add_edge(i, j, weight=d)
+            nb_edges += 1
+
+    A = nx.to_numpy_array(G, dtype=int)
+
+    return G, pos, A
+
+nx.draw(G, pos)
+plt.show()
+
+np.where(nx.to_numpy_array(G) > 0, 1, 0)
