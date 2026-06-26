@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
 
-
+TEST = 0
 
 ROUND = 3
 VAL_RANGE = 100
