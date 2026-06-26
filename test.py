@@ -5,8 +5,8 @@ import networkx as nx
 ROUND = 3
 VAL_RANGE = 100
 
-N = 10
-M = 9
+N = 50
+M = 200
 T = 100
 
 
@@ -16,88 +16,50 @@ def generate_instance(N, M):
     Generates randomly a symetrical adjacency matrix (with zero diagonal) and the initial value of the nodes.
     """
     assert N-1 <= M <= (N*(N-1))/2
-    """
-    
-    connected = False
-    while not connected :
-        # Randomly place N nodes on the unit square
-        positions = np.random.uniform(0, 1, size=(N, 2))
-    
-        # Compute pairwise distances
-        diff = positions[:, None, :] - positions[None, :, :]  # (N, N, 2)
-        dist = np.sqrt((diff ** 2).sum(axis=-1))              # (N, N)
-    
-        # Collect all unique edges with their distances
-        rows, cols = np.triu_indices(N, k=1)
-        edge_distances = dist[rows, cols]
-    
-        # Sort edges by distance; take the M shortest
-        sorted_idx = np.argsort(edge_distances)
-        selected = sorted_idx[:M]
-    
-        # Build adjacency matrix
-        adjacency_matrix = np.zeros((N, N), dtype=int)
-        for idx in selected:
-            i, j = rows[idx], cols[idx]
-            adjacency_matrix[i, j] = 1
-            adjacency_matrix[j, i] = 1
-    
-        threshold = edge_distances[sorted_idx[M - 1]]
 
-        G = nx.from_numpy_array(adjacency_matrix)
-        connected = nx.is_connected(G)
-    """
-
-
-
-    # Coordonnées uniformes dans [0,1]²
+    #create positions of nodes
     pos = np.random.random((N, 2))
 
-    # Toutes les arêtes pondérées par leur distance
+    #compute the distance between each nodes
     edges = []
     for i in range(N):
         for j in range(i + 1, N):
             d = np.linalg.norm(pos[i] - pos[j])
             edges.append((d, i, j))
 
+    #sort the edges by distance
     edges.sort(key=lambda x: x[0])
 
-    # Graphe complet pondéré
-    G_complete = nx.Graph()
-    G_complete.add_nodes_from(range(N))
+    #create the complete graph
+    graph_complete = nx.Graph()
+    graph_complete.add_nodes_from(range(N))
     for d, i, j in edges:
-        G_complete.add_edge(i, j, weight=d)
+        graph_complete.add_edge(i, j, weight=d)
 
-    # Arbre couvrant minimal (Kruskal)
-    G = nx.minimum_spanning_tree(G_complete, algorithm="kruskal")
+    #find minimum size spanning tree
+    graph = nx.minimum_spanning_tree(graph_complete)
 
-    # Nombre actuel d'arêtes
-    nb_edges = G.number_of_edges()
-
-    # Ajouter les plus courtes arêtes restantes
+    #add edges till the graph has M edges
+    nb_edges = graph.number_of_edges()
     for d, i, j in edges:
         if nb_edges == M:
             break
-        if not G.has_edge(i, j):
-            G.add_edge(i, j, weight=d)
+        if not graph.has_edge(i, j):
+            graph.add_edge(i, j, weight=d)
             nb_edges += 1
 
-    A = nx.to_numpy_array(G, dtype=int)
+    #verifications on the graph
+    assert nx.is_connected(graph)
+    assert graph.number_of_nodes() == N
+    assert graph.number_of_edges() == M
 
-    return G, pos, A
-
-
-
-
-
-
-
+    #convert graph to adjacency matrix
+    adjacency_matrix = np.where(nx.to_numpy_array(graph), 1, 0)
 
     #random initial values
     initial_values = VAL_RANGE*np.random.rand(N)
 
-    return adjacency_matrix, positions, threshold, initial_values
-
+    return adjacency_matrix, pos, initial_values
 
 
 def initialize_instance(adjacency_matrix, initial_values):
@@ -195,8 +157,8 @@ def get_x_i_range(data, node, t0, t1):
 
 #show
 def show_graph(adjacency_matrix, positions):
-    G = nx.from_numpy_array(adjacency_matrix)
-    nx.draw(G, positions, with_labels=True, node_size=100)
+    graph = nx.from_numpy_array(adjacency_matrix)
+    nx.draw(graph, positions, with_labels=True, labels={i: i+1 for i in graph.nodes}, node_size=100, font_size=8)
     plt.show()
 
 def plot(data, i=None):
@@ -243,8 +205,6 @@ def plot(data, i=None):
 
 
 
-
-
 """
 n1 = np.array([0, 1, 1, 0, 1, 0, 1, 0])
 n2 = np.array([1, 0, 0, 0, 0, 0, 0, 0])
@@ -260,8 +220,8 @@ x_0 = np.array([4, 3, 2, 1, 6, 5, 4, 7])
 """
 
 
-adj, pos, _, x_0 = generate_instance(N, M)
 
+adj, pos, x_0 = generate_instance(N, M)
 
 data = initialize_instance(adj, x_0)
 
@@ -279,46 +239,3 @@ plot(data)
 
 
 
-
-
-def gen(N, M):
-    # Coordonnées uniformes dans [0,1]²
-    pos = np.random.random((N, 2))
-
-    # Toutes les arêtes pondérées par leur distance
-    edges = []
-    for i in range(N):
-        for j in range(i + 1, N):
-            d = np.linalg.norm(pos[i] - pos[j])
-            edges.append((d, i, j))
-
-    edges.sort(key=lambda x: x[0])
-
-    # Graphe complet pondéré
-    G_complete = nx.Graph()
-    G_complete.add_nodes_from(range(N))
-    for d, i, j in edges:
-        G_complete.add_edge(i, j, weight=d)
-
-    # Arbre couvrant minimal (Kruskal)
-    G = nx.minimum_spanning_tree(G_complete, algorithm="kruskal")
-
-    # Nombre actuel d'arêtes
-    nb_edges = G.number_of_edges()
-
-    # Ajouter les plus courtes arêtes restantes
-    for d, i, j in edges:
-        if nb_edges == M:
-            break
-        if not G.has_edge(i, j):
-            G.add_edge(i, j, weight=d)
-            nb_edges += 1
-
-    A = nx.to_numpy_array(G, dtype=int)
-
-    return G, pos, A
-
-nx.draw(G, pos)
-plt.show()
-
-np.where(nx.to_numpy_array(G) > 0, 1, 0)
