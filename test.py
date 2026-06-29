@@ -5,9 +5,9 @@ import networkx as nx
 ROUND = 3
 VAL_RANGE = 100
 
-N = 50
-M = 200
-T = 100
+N = 100
+M = 400
+T = 15
 
 
 
