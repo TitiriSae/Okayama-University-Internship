@@ -5,9 +5,9 @@ import networkx as nx
 ROUND = 3
 VAL_RANGE = 100
 
-N = 100
-M = 400
-T = 15
+N = 50
+M = 200
+T = 50
 
 
 
@@ -18,12 +18,13 @@ def generate_instance(N, M):
     assert N-1 <= M <= (N*(N-1))/2
 
     #create positions of nodes
-    pos = np.random.random((N, 2))
+    random_positions = np.random.random((N, 2))
+    pos = {i+1: random_positions[i] for i in range(len(random_positions))}
 
     #compute the distance between each nodes
     edges = []
-    for i in range(N):
-        for j in range(i + 1, N):
+    for i in range(1, N+1):
+        for j in range(i+1, N+1):
             d = np.linalg.norm(pos[i] - pos[j])
             edges.append((d, i, j))
 
@@ -32,7 +33,7 @@ def generate_instance(N, M):
 
     #create the complete graph
     graph_complete = nx.Graph()
-    graph_complete.add_nodes_from(range(N))
+    graph_complete.add_nodes_from(range(1, N+1))
     for d, i, j in edges:
         graph_complete.add_edge(i, j, weight=d)
 
@@ -48,6 +49,8 @@ def generate_instance(N, M):
             graph.add_edge(i, j, weight=d)
             nb_edges += 1
 
+    #nx.draw(graph)
+
     #verifications on the graph
     assert nx.is_connected(graph)
     assert graph.number_of_nodes() == N
@@ -60,6 +63,7 @@ def generate_instance(N, M):
     initial_values = VAL_RANGE*np.random.rand(N)
 
     return adjacency_matrix, pos, initial_values
+
 
 
 def initialize_instance(adjacency_matrix, initial_values):
@@ -114,7 +118,7 @@ def initialize_local_degree_weight(data):
 
 
 
-def algo(data, W, time):
+def distributed_linear_iteration(data, W, time):
     """
     Apply the distributed linear iterations for t iterations.
     """
@@ -142,23 +146,30 @@ def algo(data, W, time):
 
 
 
-#get
+#getter functions
 def get_consensus_val(data):
+    """
+    Returns the consenseus value wanted for an instance of the problem.
+    """
     return np.mean([data[node]['x'][0] for node in data])
 
 def get_x_t(data, t):
+    """
+    Returns the vector x at time t.
+    """
     x_t = [data[node]["x"][t] for node in data]
     return x_t
 
-def get_x_i_range(data, node, t0, t1):
-    x_i_range = [data[node]["x"][t] for t in range(t0, t1+1)]
-    return x_i_range
 
 
-#show
-def show_graph(adjacency_matrix, positions):
-    graph = nx.from_numpy_array(adjacency_matrix)
-    nx.draw(graph, positions, with_labels=True, labels={i: i+1 for i in graph.nodes}, node_size=100, font_size=8)
+#display functions
+def show_graph(adjacency_matrix, positions=None):
+    """
+    Display the graph associated to the instance of the problem.
+    """
+    graph_0 = nx.from_numpy_array(adjacency_matrix)
+    graph_1 = nx.relabel_nodes(graph_0, {i: i+1 for i in graph_0.nodes()})
+    nx.draw(graph_1, positions, with_labels=True, node_size=100, font_size=8)
     plt.show()
 
 def plot(data, i=None):
@@ -170,11 +181,18 @@ def plot(data, i=None):
     - if i is set as the ID of an agent, the evolution of this agent only will be shown.
     """
 
+    def _get_x_i_range(data, node, t0=0, t1=T):
+        """
+        Returns the all the values taken by a node from time t0 to time t1.
+        """
+        x_i_range = [data[node]["x"][t] for t in range(t0, t1+1)]
+        return x_i_range
+
     def _plot_x_i_t(data, i, color=None):
         """
         Plot the evolution of the value x_i over time t.
         """
-        plt.plot(np.arange(T+1), get_x_i_range(data, i, 0, T), color=color ,label=f'x_{i}(t)')
+        plt.plot(np.arange(T+1), _get_x_i_range(data, i), color=color ,label=f'x_{i}(t)')
 
     def _plot_x_t(data):
         """
@@ -205,7 +223,12 @@ def plot(data, i=None):
 
 
 
+#Example of a adjacency matrix of an undirected graph
 """
+N = 8
+M = 9
+T = 30
+
 n1 = np.array([0, 1, 1, 0, 1, 0, 1, 0])
 n2 = np.array([1, 0, 0, 0, 0, 0, 0, 0])
 n3 = np.array([1, 0, 0, 0, 0, 0, 0, 0])
@@ -217,11 +240,19 @@ n8 = np.array([0, 0, 0, 1, 1, 0, 0, 0])
 
 adj = np.array([n1, n2, n3, n4, n5, n6, n7, n8])
 x_0 = np.array([4, 3, 2, 1, 6, 5, 4, 7])
+show_graph(adj)
 """
 
 
 
+#Random generation
+
 adj, pos, x_0 = generate_instance(N, M)
+show_graph(adj, pos)
+
+
+
+#Algorithm 
 
 data = initialize_instance(adj, x_0)
 
@@ -229,12 +260,9 @@ print(f"x(0) = {np.round(get_x_t(data, 0), ROUND)}")
 print(f"consensus : {get_consensus_val(data):.{ROUND}f}")
 
 W = initialize_local_degree_weight(data)
-
-algo(data, W, T)
+distributed_linear_iteration(data, W, T)
 
 print(f"x(t) = {get_x_t(data, T)}")
-
-show_graph(adj, pos)
 plot(data)
 
 
