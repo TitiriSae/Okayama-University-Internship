@@ -138,7 +138,7 @@ def plot(data, Q, i=None):
         return [_get_norm_unsigned_ui_t_qi(data, i, t, Q) for t in range(t0, t1+1)]
 
     def _get_norm_unsigned_U_t_QP(data, t, Q):
-        return sum([_get_norm_unsigned_ui_t_qi(data, i, t, Q) for i in range(P)])
+        return sum([_get_norm_unsigned_ui_t_qi(data, i, t, Q) for i in range(1, P+1)])
     
     def _get_norm_unsigned_U_t_QP_range(data, t0, t1, Q):
         return [_get_norm_unsigned_U_t_QP(data, t, Q) for t in range(t0, t1+1)]
@@ -152,14 +152,16 @@ def plot(data, Q, i=None):
         plt.plot(np.arange(T+1), _get_norm_unsigned_U_t_QP_range(data, 0, T, Q), label="U, Q'")
     elif i == 0:
         cmap = plt.get_cmap('plasma')
-        for j in range(P):
+        for j in range(1, P+1):
             plt.plot(np.arange(T+1), _get_norm_unsigned_ui_t_qi_range(data, j, 0, T, Q), color=cmap(j/(P)), label=f"u_{j+1}(t), q_{j+1}")
     elif i == -1:
         for a in range(P):
             plot(data, Q, a)
         return
-    else:
+    elif 1 <= i <= P:
         plt.plot(np.arange(T+1), _get_norm_unsigned_ui_t_qi_range(data, i, 0, T, Q), label=f"u_{i}(t), q_{i}")
+    else:
+        raise KeyError
 
     plt.axhline(y=0, color='red', linestyle='--', linewidth=0.75, label=f'0')
 

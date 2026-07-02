@@ -213,8 +213,10 @@ def plot(data, i=None):
         for a in range(1, N+1):
             plot(data, a)
         return
-    else:
+    elif 1<= i <= N:
         _plot_x_i_t(data, i)
+    else:
+        raise KeyError
         
     plt.axhline(y=get_consensus_val(data), color='red', linestyle='--', linewidth=0.75, label=f'consensus_value = {get_consensus_val(data):.{ROUND}f}')
 
