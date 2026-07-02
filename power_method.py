@@ -11,7 +11,7 @@ VAL_RANGE = 100
 N = 30
 L = 100
 P = 20
-T = 100
+T = 200
 
 #Verifications of global dimension parameters
 assert N < L
@@ -79,7 +79,6 @@ def power_method(X):
         """
         Generate a random vector of dimension N on the standard normal distribution.
         """
-
         u = np.random.randn(N, 1)
         u /= np.linalg.norm(u)
         return u
@@ -116,6 +115,9 @@ def update_rule(X, k1, k2, eps):
 
 #getter functions
 def get_U_t(data, t):
+    """
+    Get U(t) = (u1(t) ... uP(t)).
+    """
     U_t = np.hstack([data[p][t] for p in range(1, P+1)])
     return U_t
 
@@ -131,16 +133,28 @@ def plot(data, Q, i=None):
     """
 
     def _get_norm_unsigned_ui_t_qi(data, i, t, Q):
+        """
+        Get the distance between ui(t) and qi, accurate to the sign.
+        """
         U_t = get_U_t(data, t)
         return abs( abs(U_t[:, i-1] @ Q[:, i-1]) - 1 )
     
     def _get_norm_unsigned_ui_t_qi_range(data, i, t0, t1, Q):
+        """
+        Get the distance between ui(t) and qi, from time t0 to time t1, accurate to the sign.
+        """
         return [_get_norm_unsigned_ui_t_qi(data, i, t, Q) for t in range(t0, t1+1)]
 
     def _get_norm_unsigned_U_t_QP(data, t, Q):
+        """
+        Get the distance between U(t) = (u1(t) ... uP(t)) and Q' = (q1 ... qP), accurate to the sign.
+        """
         return sum([_get_norm_unsigned_ui_t_qi(data, i, t, Q) for i in range(1, P+1)])
     
     def _get_norm_unsigned_U_t_QP_range(data, t0, t1, Q):
+        """
+        Get the distance between U(t) = (u1(t) ... uP(t)) and Q' = (q1 ... qP), from time t0 to time t1, accurate to the sign.
+        """
         return [_get_norm_unsigned_U_t_QP(data, t, Q) for t in range(t0, t1+1)]
 
 
@@ -153,13 +167,13 @@ def plot(data, Q, i=None):
     elif i == 0:
         cmap = plt.get_cmap('plasma')
         for j in range(1, P+1):
-            plt.plot(np.arange(T+1), _get_norm_unsigned_ui_t_qi_range(data, j, 0, T, Q), color=cmap(j/(P)), label=f"u_{j+1}(t), q_{j+1}")
+            plt.plot(np.arange(T+1), _get_norm_unsigned_ui_t_qi_range(data, j, 0, T, Q), color=cmap(j/(P)), label=f"u{j+1}(t), q{j+1}")
     elif i == -1:
         for a in range(P):
             plot(data, Q, a)
         return
     elif 1 <= i <= P:
-        plt.plot(np.arange(T+1), _get_norm_unsigned_ui_t_qi_range(data, i, 0, T, Q), label=f"u_{i}(t), q_{i}")
+        plt.plot(np.arange(T+1), _get_norm_unsigned_ui_t_qi_range(data, i, 0, T, Q), label=f"u{i}(t), q{i}")
     else:
         raise KeyError
 
