@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-ROUND = 3
 VAL_RANGE = 100
 
 #Sample of dimension N
@@ -9,16 +8,16 @@ VAL_RANGE = 100
 #Number of dimension of the subspace P
 #Number of iteration T per principal component
 
-N = 3
-L = 5
-P = 2
+N = 30
+L = 100
+P = 20
 T = 100
 
 #Verifications of global dimension parameters
 assert N < L
 assert P < N
 
-#np.random.seed(42)
+np.random.seed(42)
 
 
 
@@ -28,6 +27,7 @@ def generate_data_matrix():
     """
     Generates randomly an instance of data X for the problem. The rows of the matrix sums to 1.
     """
+
     X = np.random.random((N, L))
     X -= np.mean(X, axis=1, keepdims=True)
 
@@ -35,10 +35,13 @@ def generate_data_matrix():
     assert np.allclose(np.sum(X, axis=1), np.zeros(N), atol=1e-12)
     return X
 
+
+
 def covariance_matrix(X):
     """
     Create the covarance matrix S associated to the data matrix X.
     """
+
     S = (1/L)*np.dot(X, X.T)
 
     #Verification shape and symetry
@@ -46,10 +49,13 @@ def covariance_matrix(X):
     assert np.all(S == S.T)
     return S
 
+
+
 def spectral_decomposition(S):
     """
     Finds the spectral decomposition of the covariance matrix S = Q @ Lambda @ Q.T.
     """
+
     eigval, Q = np.linalg.eigh(S) 
 
     reversed_indices = np.argsort(eigval)[::-1]
@@ -64,24 +70,26 @@ def spectral_decomposition(S):
 
 
 
-def normalised_vector():
-    """
-    Generate a random vector of dimension N on the standard normal distribution.
-    """
-    u = np.random.randn(N, 1)
-    u /= np.linalg.norm(u)
-    return u
-
 def power_method(X):
     """
     Apply the power method.
     """
+
+    def _normalised_vector():
+        """
+        Generate a random vector of dimension N on the standard normal distribution.
+        """
+
+        u = np.random.randn(N, 1)
+        u /= np.linalg.norm(u)
+        return u
+
+
     data = dict()
     Sp = covariance_matrix(X)
-    _, Q = spectral_decomposition(Sp)
 
     for p in range(1, P+1):
-        up_0 = normalised_vector()
+        up_0 = _normalised_vector()
         data[p] = [up_0]
 
         for t in range(T):
@@ -91,13 +99,10 @@ def power_method(X):
         
         Sp = Sp - Sp @ data[p][T] @ data[p][T].T
     
-    U = np.hstack([data[p][T] for p in data])
-
-    #Vérification that the vectors u correspond to the columns of Q such as S = Q @ Lambda @ Q.T
-    for p in range(P):
-        assert np.isclose(abs(U[:, p] @ Q[:, p]), 1, atol=1e-12)
-
+    U = get_U_t(data, T)
     return data, U
+
+
 
 def update_rule(X, k1, k2, eps):
     data = dict()
@@ -109,18 +114,57 @@ def update_rule(X, k1, k2, eps):
 
 
 
+#getter functions
+def get_U_t(data, t):
+    U_t = np.hstack([data[p][t] for p in range(1, P+1)])
+    return U_t
 
-def get_u_t(data, t):
-    u_t = [data[p][t] for p in range(1, P+1)]
-    return u_t
 
-def plot(data):
-    plt.title(label=f'Evolution of x_i(t)')
-    plt.xlabel(xlabel='t')
-    plt.ylabel(ylabel=f'x_i(t)')
 
+#display functions
+def plot(data, Q, i=None):
+    """
+    i = None : plotting the total distance between U(T) and Q
+    i = 0 : plotting the distances between ui(T) and qi in a sigle plot
+    i = -1 : plotting the distances between ui(T) and qi separately
+    1 <= i <= P : plotting the evolution of the distance of the i-th principal component
+    """
+
+    def _get_norm_unsigned_ui_t_qi(data, i, t, Q):
+        U_t = get_U_t(data, t)
+        return abs( abs(U_t[:, i-1] @ Q[:, i-1]) - 1 )
+    
+    def _get_norm_unsigned_ui_t_qi_range(data, i, t0, t1, Q):
+        return [_get_norm_unsigned_ui_t_qi(data, i, t, Q) for t in range(t0, t1+1)]
+
+    def _get_norm_unsigned_U_t_QP(data, t, Q):
+        return sum([_get_norm_unsigned_ui_t_qi(data, i, t, Q) for i in range(P)])
+    
+    def _get_norm_unsigned_U_t_QP_range(data, t0, t1, Q):
+        return [_get_norm_unsigned_U_t_QP(data, t, Q) for t in range(t0, t1+1)]
+
+
+    plt.title(label=f"Evolution of the distance between U = (u1 ... uP) and Q' = (q1 ... qP)")
+    plt.xlabel(xlabel="t")
+    plt.ylabel(ylabel=f"Distance between U and Q")
+
+    if i == None:
+        plt.plot(np.arange(T+1), _get_norm_unsigned_U_t_QP_range(data, 0, T, Q), label="U, Q'")
+    elif i == 0:
+        cmap = plt.get_cmap('plasma')
+        for j in range(P):
+            plt.plot(np.arange(T+1), _get_norm_unsigned_ui_t_qi_range(data, j, 0, T, Q), color=cmap(j/(P)), label=f"u_{j+1}(t), q_{j+1}")
+    elif i == -1:
+        for a in range(P):
+            plot(data, Q, a)
+        return
+    else:
+        plt.plot(np.arange(T+1), _get_norm_unsigned_ui_t_qi_range(data, i, 0, T, Q), label=f"u_{i}(t), q_{i}")
+
+    plt.axhline(y=0, color='red', linestyle='--', linewidth=0.75, label=f'0')
+
+    plt.legend(fontsize='small', bbox_to_anchor=(1.05, 1), ncol=max(1, P//20+1))
     plt.show()
-
 
 
 
@@ -135,3 +179,6 @@ data, U = power_method(X)
 print(U)
 print()
 print(Q[:, :P])
+
+plot(data, Q)
+plot(data, Q, 0)
