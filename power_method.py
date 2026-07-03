@@ -1,6 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+
+
+np.random.seed(42)
+
+
+
 VAL_RANGE = 100
 
 #Sample of dimension N
@@ -9,15 +15,14 @@ VAL_RANGE = 100
 #Number of iteration T per principal component
 
 N = 30
-L = 100
+L = 50
 P = 20
-T = 200
+T = 160
 
 #Verifications of global dimension parameters
 assert N < L
 assert P < N
 
-np.random.seed(42)
 
 
 
@@ -70,25 +75,26 @@ def spectral_decomposition(S):
 
 
 
+def normalised_vector():
+    """
+    Generate a random vector of dimension N on the standard normal distribution.
+    """
+    u = np.random.randn(N, 1)
+    u /= np.linalg.norm(u)
+    return u
+
+
+
 def power_method(X):
     """
     Apply the power method.
     """
 
-    def _normalised_vector():
-        """
-        Generate a random vector of dimension N on the standard normal distribution.
-        """
-        u = np.random.randn(N, 1)
-        u /= np.linalg.norm(u)
-        return u
-
-
     data = dict()
     Sp = covariance_matrix(X)
 
     for p in range(1, P+1):
-        up_0 = _normalised_vector()
+        up_0 = normalised_vector()
         data[p] = [up_0]
 
         for t in range(T):
@@ -104,12 +110,20 @@ def power_method(X):
 
 
 def update_rule(X, k1, k2, eps):
-    data = dict()
+    data = {i: [normalised_vector()] for i in range(1, P+1)}
     S = covariance_matrix(X)
+    
+    for t in range(T):
+        for i in range(1, P+1):
+            ui_t1 = (-k1 * sum([data[j][t] @ data[j][t].T @ data[i][t] for j in range(1, i+1)]))
+            ui_t1 = ui_t1 + k2 * (S @ data[i][t])
+            ui_t1 = ui_t1 * eps + data[i][t]
 
-    for i in range(1, P+1):
-        pass
-
+            ui_t1 /= np.linalg.norm(ui_t1)
+            data[i].append(ui_t1)
+    
+    U = get_U_t(data, T)
+    return data, U
 
 
 
@@ -167,7 +181,7 @@ def plot(data, Q, i=None):
     elif i == 0:
         cmap = plt.get_cmap('plasma')
         for j in range(1, P+1):
-            plt.plot(np.arange(T+1), _get_norm_unsigned_ui_t_qi_range(data, j, 0, T, Q), color=cmap(j/(P)), label=f"u{j+1}(t), q{j+1}")
+            plt.plot(np.arange(T+1), _get_norm_unsigned_ui_t_qi_range(data, j, 0, T, Q), color=cmap(j/(P)), label=f"u{j}(t), q{j}")
     elif i == -1:
         for a in range(P):
             plot(data, Q, a)
@@ -198,3 +212,11 @@ print(Q[:, :P])
 
 plot(data, Q)
 plot(data, Q, 0)
+
+"""
+T=7000
+
+data1, U1 = update_rule(X, 0.2, 0.4, 0.1)
+plot(data1, Q)
+plot(data1, Q, 0)
+"""
