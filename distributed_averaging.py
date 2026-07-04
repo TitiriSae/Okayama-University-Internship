@@ -2,9 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
 
-ROUND = 3
+
+
 VAL_RANGE = 100
 
+#Number of nodes N
+#Number of edges M
+#Number of iteration T
 N = 50
 M = 200
 T = 30
@@ -118,7 +122,7 @@ def initialize_local_degree_weight(data):
 
 
 
-def distributed_linear_iteration(data, W, time):
+def distributed_linear_iteration(data, W):
     """
     Apply the distributed linear iterations for t iterations.
     """
@@ -134,7 +138,7 @@ def distributed_linear_iteration(data, W, time):
                 )
             )) < 1
 
-    for t in range(1, time+1):
+    for t in range(1, T+1):
 
         for i in range(1, N+1):
             #iteration
@@ -218,7 +222,7 @@ def plot(data, i=None):
     else:
         raise KeyError
         
-    plt.axhline(y=get_consensus_val(data), color='red', linestyle='--', linewidth=0.75, label=f'consensus_value = {get_consensus_val(data):.{ROUND}f}')
+    plt.axhline(y=get_consensus_val(data), color='red', linestyle='--', linewidth=0.75, label=f'consensus_value = {get_consensus_val(data):.3f}')
 
     plt.legend(fontsize='small', bbox_to_anchor=(1.05, 1), ncol=max(1, N//20+1))
     plt.show()
@@ -248,23 +252,15 @@ show_graph(adj)
 
 
 #Random generation
-
 adj, pos, x_0 = generate_instance(N, M)
 show_graph(adj, pos)
 
-
-
-#Algorithm 
-
 data = initialize_instance(adj, x_0)
 
-print(f"x(0) = {np.round(get_x_t(data, 0), ROUND)}")
-print(f"consensus : {get_consensus_val(data):.{ROUND}f}")
-
+#Algorithm 
 W = initialize_local_degree_weight(data)
-distributed_linear_iteration(data, W, T)
+distributed_linear_iteration(data, W)
 
-print(f"x(t) = {get_x_t(data, T)}")
 plot(data)
 
 

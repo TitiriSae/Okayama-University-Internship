@@ -4,27 +4,20 @@ import matplotlib.pyplot as plt
 
 
 np.random.seed(42)
-
-
-
 VAL_RANGE = 100
 
 #Sample of dimension N
 #Number of sample L
 #Number of dimension of the subspace P
 #Number of iteration T per principal component
-
-N = 30
-L = 50
-P = 20
-T = 160
+N = 500
+L = 501
+P = 499
+T = 2000
 
 #Verifications of global dimension parameters
 assert N < L
 assert P < N
-
-
-
 
 
 
@@ -75,17 +68,25 @@ def spectral_decomposition(S):
 
 
 
-def normalised_vector():
+def generate_initial_vectors():
     """
-    Generate a random vector of dimension N on the standard normal distribution.
+    Generate P normalised vectors of dimension N.
     """
-    u = np.random.randn(N, 1)
-    u /= np.linalg.norm(u)
-    return u
+
+    def _normalised_vector():
+        """
+        Generate a random vector of dimension N on the standard normal distribution.
+        """
+        u = np.random.randn(N, 1)
+        u /= np.linalg.norm(u)
+        return u
+    
+    
+    return [_normalised_vector() for _ in range(P)]
 
 
 
-def power_method(X):
+def power_method(X, initial_vectors):
     """
     Apply the power method.
     """
@@ -94,8 +95,7 @@ def power_method(X):
     Sp = covariance_matrix(X)
 
     for p in range(1, P+1):
-        up_0 = normalised_vector()
-        data[p] = [up_0]
+        data[p] = [initial_vectors[p-1]]
 
         for t in range(T):
             Sp_up_t = np.dot(Sp, data[p][t])
@@ -109,8 +109,12 @@ def power_method(X):
 
 
 
-def update_rule(X, k1, k2, eps):
-    data = {i: [normalised_vector()] for i in range(1, P+1)}
+def update_rule(X, initial_vectors, k1, k2, eps):
+    """
+    Apply the update rule proposed in the paper.
+    """
+
+    data = {p: [initial_vectors[p-1]] for p in range(1, P+1)}
     S = covariance_matrix(X)
     
     for t in range(T):
@@ -153,7 +157,7 @@ def plot(data, Q, i=None):
         U_t = get_U_t(data, t)
         return abs( abs(U_t[:, i-1] @ Q[:, i-1]) - 1 )
     
-    def _get_norm_unsigned_ui_t_qi_range(data, i, t0, t1, Q):
+    def _get_norm_unsigned_ui_t_qi_range(data, i, Q, t0=0, t1=T):
         """
         Get the distance between ui(t) and qi, from time t0 to time t1, accurate to the sign.
         """
@@ -165,7 +169,7 @@ def plot(data, Q, i=None):
         """
         return sum([_get_norm_unsigned_ui_t_qi(data, i, t, Q) for i in range(1, P+1)])
     
-    def _get_norm_unsigned_U_t_QP_range(data, t0, t1, Q):
+    def _get_norm_unsigned_U_t_QP_range(data, Q, t0=0, t1=T):
         """
         Get the distance between U(t) = (u1(t) ... uP(t)) and Q' = (q1 ... qP), from time t0 to time t1, accurate to the sign.
         """
@@ -177,17 +181,17 @@ def plot(data, Q, i=None):
     plt.ylabel(ylabel=f"Distance between U and Q")
 
     if i == None:
-        plt.plot(np.arange(T+1), _get_norm_unsigned_U_t_QP_range(data, 0, T, Q), label="U, Q'")
+        plt.plot(np.arange(T+1), _get_norm_unsigned_U_t_QP_range(data, Q), label="U, Q'")
     elif i == 0:
         cmap = plt.get_cmap('plasma')
         for j in range(1, P+1):
-            plt.plot(np.arange(T+1), _get_norm_unsigned_ui_t_qi_range(data, j, 0, T, Q), color=cmap(j/(P)), label=f"u{j}(t), q{j}")
+            plt.plot(np.arange(T+1), _get_norm_unsigned_ui_t_qi_range(data, j, Q), color=cmap(j/(P)), label=f"u{j}(t), q{j}")
     elif i == -1:
         for a in range(P):
             plot(data, Q, a)
         return
     elif 1 <= i <= P:
-        plt.plot(np.arange(T+1), _get_norm_unsigned_ui_t_qi_range(data, i, 0, T, Q), label=f"u{i}(t), q{i}")
+        plt.plot(np.arange(T+1), _get_norm_unsigned_ui_t_qi_range(data, i, Q), label=f"u{i}(t), q{i}")
     else:
         raise KeyError
 
@@ -198,25 +202,18 @@ def plot(data, Q, i=None):
 
 
 
-
-
 X = generate_data_matrix()
+initial_vectors = generate_initial_vectors()
+
 S = covariance_matrix(X)
 Lambda, Q = spectral_decomposition(S)
 
-data, U = power_method(X)
-
-print(U)
-print()
-print(Q[:, :P])
-
+data, U = power_method(X, initial_vectors)
 plot(data, Q)
 plot(data, Q, 0)
-
 """
-T=7000
-
-data1, U1 = update_rule(X, 0.2, 0.4, 0.1)
+T=8000
+data1, U1 = update_rule(X, initial_vectors, 0.2, 0.4, 0.1)
 plot(data1, Q)
 plot(data1, Q, 0)
 """
