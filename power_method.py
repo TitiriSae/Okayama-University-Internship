@@ -10,10 +10,11 @@ VAL_RANGE = 100
 #Number of sample L
 #Number of dimension of the subspace P
 #Number of iteration T per principal component
-N = 500
-L = 501
-P = 499
-T = 2000
+N = 10
+L = 15
+P = 6
+T = 50
+
 
 #Verifications of global dimension parameters
 assert N < L
@@ -145,7 +146,7 @@ def get_U_t(data, t):
 def plot(data, Q, i=None):
     """
     i = None : plotting the total distance between U(T) and Q
-    i = 0 : plotting the distances between ui(T) and qi in a sigle plot
+    i = 0 : plotting the distances between ui(T) and qi in a single plot
     i = -1 : plotting the distances between ui(T) and qi separately
     1 <= i <= P : plotting the evolution of the distance of the i-th principal component
     """
@@ -211,9 +212,9 @@ Lambda, Q = spectral_decomposition(S)
 data, U = power_method(X, initial_vectors)
 plot(data, Q)
 plot(data, Q, 0)
-"""
-T=8000
+
+
+
 data1, U1 = update_rule(X, initial_vectors, 0.2, 0.4, 0.1)
 plot(data1, Q)
 plot(data1, Q, 0)
-"""
