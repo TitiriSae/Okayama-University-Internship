@@ -182,6 +182,17 @@ def set_NB_EDGE(nb_edge):
     NB_EDGE = nb_edge
     return nb_edge
 
+def set_T_DA(t_da):
+    """
+    Setter for the global variable T_DA.
+
+    return:
+        t_da: int
+    """
+    global T_DA
+    T_DA = t_da
+    return t_da
+
 
 
 #Getter functions
