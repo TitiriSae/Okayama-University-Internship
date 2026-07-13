@@ -74,7 +74,7 @@ def generate_instance_DA():
 
 
 
-def initialize_instance(adjacency_matrix, initial_values):
+def initialize_instance(adjacency_matrix):
     """
     Return instance's data defined with by the graph and the initial values of each nodes in dict format.
 
@@ -87,7 +87,6 @@ def initialize_instance(adjacency_matrix, initial_values):
 
     #Verification of lists length
     assert np.shape(adjacency_matrix)[0] == np.shape(adjacency_matrix)[1]
-    assert np.shape(adjacency_matrix)[0] == len(initial_values)
 
     data = dict()
 
@@ -97,10 +96,24 @@ def initialize_instance(adjacency_matrix, initial_values):
         data[i]["n"] = [j for j in range(1, NB_AGENT+1) if adjacency_matrix[i-1][j-1]!=0]
         #Degree of the node
         data[i]["d"] = len(data[i]["n"])
-        #Storage of a history of the values taken
-        data[i]["x"] = [initial_values[i-1]]
     
     return data
+
+
+
+def initialize_initial_values(data, initial_values):
+    """
+    Add an entry "x" to the dictionary to store the values' history during the averaging consensus.
+
+    return:
+        None
+    """
+    #Verification of lists length
+    assert len(data) == len(initial_values)
+
+    for i in range(1, NB_AGENT+1):
+        #Storage of a history of the values taken
+        data[i]["x"] = [initial_values[i-1]]
 
 
 
@@ -132,7 +145,7 @@ def initialize_local_degree_weight(data):
 
 def distributed_linear_iteration(data, W):
     """
-    Apply the distributed linear iterations for t iterations.
+    Apply the distributed linear iterations for t iterations on the "x" entry of the data.
 
     return: 
         None
@@ -327,7 +340,8 @@ if __name__ == "__main__":
     adj, pos, x_0 = generate_instance_DA()
     show_graph(adj, pos)
 
-    data = initialize_instance(adj, x_0)
+    data = initialize_instance(adj)
+    initialize_initial_values(data, x_0)
 
     #Algorithm 
     W = initialize_local_degree_weight(data)
