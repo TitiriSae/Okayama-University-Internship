@@ -11,7 +11,7 @@ SEED = 42
 N_DIM = 10
 L_DIM = 15
 P_DIM = 6
-T_PM = 50
+T_PM = 5000
 
 K1 = 0.2
 K2 = 0.4
@@ -317,11 +317,11 @@ if __name__ == "__main__":
     X, initial_vectors = generate_instance_PM(L_DIM)
     S = covariance_matrix(X, L_DIM)
     Lambda, Q = spectral_decomposition(S)
-
+    
     data, U = power_method(X, initial_vectors, L_DIM)
     plot(data, Q, pm=True)
     plot(data, Q, 0, pm=True)
-
+    
     data1, U1 = update_rule(X, initial_vectors, L_DIM, K1, K2, EPS)
     plot(data1, Q)
     plot(data1, Q, 0)

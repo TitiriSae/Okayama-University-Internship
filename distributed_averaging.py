@@ -82,7 +82,6 @@ def initialize_instance(adjacency_matrix):
         data: dict[int, dict[str, Any]] 
             data -> (i) node i -> ('n') neighbors of node i: list[int]
                                -> ('d') degree of node i: int
-                               -> ('x') history of values of node i: list[float]
     """
 
     #Verification of lists length
@@ -104,7 +103,10 @@ def initialize_instance(adjacency_matrix):
 def initialize_initial_values(data, initial_values):
     """
     Add an entry "x" to the dictionary to store the values' history during the averaging consensus.
-
+    data: dict[int, dict[str, Any]] 
+        data -> (i) node i -> ('n') neighbors of node i: list[int]
+                           -> ('d') degree of node i: int
+                           -> ('x') history of values of node i: list[float]
     return:
         None
     """

@@ -1,11 +1,10 @@
-from distributed_averaging import generate_instance_DA, initialize_instance, initialize_initial_values, initialize_local_degree_weight, distributed_linear_iteration, show_graph, plot as plot_DA
+from distributed_averaging import generate_instance_DA, initialize_instance, initialize_initial_values, initialize_local_degree_weight, distributed_linear_iteration, show_graph
 from distributed_averaging import set_NB_AGENT, set_NB_EDGE, set_T_DA
-from power_method import generate_instance_PM, covariance_matrix, spectral_decomposition, power_method, update_rule, plot as plot_PM
+from power_method import generate_instance_PM, covariance_matrix, spectral_decomposition
 from power_method import set_N_DIM, set_P_DIM, set_T_PM, set_K1, set_K2, set_EPS
 
 import numpy as np
 import matplotlib.pyplot as plt
-import networkx as nx
 
 
 
@@ -16,7 +15,7 @@ SEED = 42
 #Number of iteration for the distributed linear iteration T_DA
 NB_AGENT = set_NB_AGENT(6)
 NB_EDGE = set_NB_EDGE(7)
-T_DA = set_T_DA(200)
+T_DA = set_T_DA(250)
 
 assert NB_AGENT-1 <= NB_EDGE <= (NB_AGENT*(NB_AGENT-1))/2
 
@@ -27,7 +26,7 @@ assert NB_AGENT-1 <= NB_EDGE <= (NB_AGENT*(NB_AGENT-1))/2
 N_DIM = set_N_DIM(5)
 P_DIM = set_P_DIM(3)
 L_DIM_LIST = [6, 6, 7, 7, 8, 8]
-T_PM = set_T_PM(20)
+T_PM = set_T_PM(10000)
 
 for l_dim in L_DIM_LIST:
     assert N_DIM < l_dim, "global parameters aren't set correctly."
@@ -42,147 +41,180 @@ K2 = set_K2(0.4)
 EPS = set_EPS(0.1)
 
 
+
 np.random.seed(SEED)
 
 
 
 
 
+def init_decentralized_PCA():
+    """
+    Initialize an instance of the decentralized algorithm for PCA.
+
+    return:
+        adjacency_matrix: list[list[int]]
+        data: dict[int, dict[str, Any]]
+            data -> (m) agent m -> ('n') neighbors of agent m: list[int]
+                                -> ('d') degree of agent m: int
+        W: list[list[float]]
+        X_m_init_vect_list: list[tuple[ list[list[float]], list[list[list[float]]] ]]
+    """
+
+    #Initialization of the agent network
+    adjacency_matrix, _, _= generate_instance_DA()
+    #show_graph(adjacency_matrix)
+
+    #Updating the data dictionary to add information on the neighbours, degree for each agent
+    data = initialize_instance(adjacency_matrix)
+
+    #Initialization of the weights matrix
+    W = initialize_local_degree_weight(data)
+
+    #Initialization of the data and initial vectors for the PCA instances for each agent
+    X_m_init_vect_list = [generate_instance_PM(L_DIM_LIST[m]) for m in range(NB_AGENT)]
+
+    return adjacency_matrix, data, W, X_m_init_vect_list
 
 
 
+def decentralized_PCA(data, W, X_m_init_vect_list):
+    """
+    Apply the decentralized algorithm for PCA.
 
+    The entries of the data dictonary is updated.
+    data: dict[Any, Any]
+    data -> (m) agent m -> ('n') neighbors of agent m: list[int]
+                        -> ('d') degree of agent m: int
+                        -> ('X') local data matrix X of agent m: list[list[float]]
+                        -> ('U') history of the matrices U_m(t) = (u1_m(t) ... uP_m(t)) computed at each time t: list[list[list[list[float]]]]
+                        -> ('Y') history of the matrices Y_m(t) = (y1_m(t) ... yP_m(t)) computed at each time t: list[list[list[list[float]]]]
+                        -> ('Z') history of the matrices Z_m(t) = (z1_m(t) ... zP_m(t)) computed at each time t: list[list[list[list[float]]]]
+         -> ('X') global data: list[list[float]]
+         -> ('Q') optimal matrix of eigenvectors: list[list[float]]
 
+    return:
+        None
+    """
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-#Initialization of the agent network
-adjacency_matrix, _, _= generate_instance_DA()
-show_graph(adjacency_matrix)
-
-#Initialization of the data and initial vectors for the PCA instances for each agent
-X_m_init_vect_list = [generate_instance_PM(L_DIM_LIST[m]) for m in range(NB_AGENT)]
-
-#Updating the data dictionary to add information on the neighbours, degree for each agent
-data = initialize_instance(adjacency_matrix)
-
-#Initialization of the weights matrix
-W = initialize_local_degree_weight(data)
-
-for m in range(1, NB_AGENT+1):
-
-    #Updating the data dictionary to add information on the local data matrix and its eigenvectors matrix for each agent
-    data[m]["X"] = X_m_init_vect_list[m-1][0]
-
-    #Preparing the key value "U", "Y" and "Z" of the data for each agent to store matrices U, Y and Z at each time
-    data[m]["U"] = [X_m_init_vect_list[m-1][1]]
-    data[m]["Y"] = []
-    data[m]["Z"] = []
-
-
-
-
-
-#BEGINNING OF ITERATION t=0
-t=0
-
-#Preparing to compute matrices Y(t), Z(t) and U(t) for this iteration
-for m in range(1, NB_AGENT+1):
-    data[m]["Y"].append([])
-    data[m]["Z"].append([])
-    data[m]["U"].append([])
-
-
-
-
-#STEP 1: COMPUTING AND AVERAGE CONSENSUS OF THE MATRIX Y_m(t) = (y1_m(t) ... yP_m(t)) FOR EACH AGENT m
-for p in range(P_DIM):
-
-    #Updating the data dictionary to add entry on values' history for the p-th principal component for each agent
-    up_m_t_list = [data[m]["U"][t][p] for m in range(1, NB_AGENT+1)]
-    initialize_initial_values(data, up_m_t_list)
-
-    #Distributed averaging consensus on the vector up_m(t) to find yp_m(t)
-    distributed_linear_iteration(data, W)
-
+    #Updating data dictionary to start iterations
     for m in range(1, NB_AGENT+1):
 
-        #Storing the last estimated p-th principal component as the vector yp_m(t) for each agent
-        data[m]["Y"][t].append(data[m]["x"][-1])
+        #Updating the data dictionary to add information on the local data matrix and its eigenvectors matrix for each agent
+        data[m]["X"] = X_m_init_vect_list[m-1][0]
 
-        #Resetting the values' history entry to prepare for next the principal component's computing for each agent
-        del data[m]["x"]
+        #Preparing the key value "U", "Y" and "Z" of the data for each agent to store matrices U, Y and Z at each time
+        data[m]["U"] = [X_m_init_vect_list[m-1][1]]
+        data[m]["Y"] = []
+        data[m]["Z"] = []
 
+    #Beginning of iterations loop
+    for t in range(T_PM):
 
+        #Preparing to compute matrices Y(t), Z(t) and U(t) for this iteration
+        for m in range(1, NB_AGENT+1):
+            data[m]["Y"].append([])
+            data[m]["Z"].append([])
+            data[m]["U"].append([])
 
+        #STEPS 
+        compute_Y_t(data, W, t)
+        compute_Z_t(data, W, t)
+        update_rule_t(data, t)
 
-
-#STEP 2: COMPUTING AND AVERAGE CONSENSUS OF THE MATRIX Z_m(t) = (z1_m(t) ... zP_m(t)) FOR EACH AGENT m
-for p in range(P_DIM):
-
-    #Computing the p-th term in the last sum term in the update rule for each agent
-    last_term_list = [data[m]["X"] @ data[m]["X"].T @ data[m]["Y"][t][p] for m in range(1, NB_AGENT+1)]
-
-    #Updating the data dictionary to add entry on values' history for the vector zp_m(t) for each agent
-    initialize_initial_values(data, last_term_list)
-
-    #Distributed averaging consensus on the yp_m(t) vector to find zp_m(t)
-    distributed_linear_iteration(data, W)
-
-    for m in range(1, NB_AGENT+1):
-
-        #Storing the last estimated p-th vector of Z_m(t) for each agent
-        data[m]["Z"][t].append(data[m]["x"][-1])
-
-        #Resetting the values' history entry to prepare for the computing of the next vector of Z_m(t) for each agent
-        del data[m]["x"]
+    #Adding global data and optimal matrix of eigenvectors to the data
+    X = np.hstack([X_m_init_vect_list[m][0] for m in range(NB_AGENT)])
+    _, Q = spectral_decomposition(covariance_matrix(X, sum(L_DIM_LIST)))
+    data["X"] = X
+    data["Q"] = np.hsplit(Q, Q.shape[1])
 
 
 
+def compute_Y_t(data, W, t):
+    """
+    #STEP 1: AVERAGE CONSENSUS ON U_m(t) = (u1_m(t) ... uP_m(t)) TO FIND MATRIX Y_m(t) = (y1_m(t) ... yP_m(t)) FOR EACH AGENT m
 
+    return:
+        None
+    """
 
-#STEP 3: COMPUTING A SIGLE ITERATION OF THE UPDATE RULE to find U_m(t) = (u1_m(t) ... uP_m(t)) FOR EACH AGENT m
-for m in range(1, NB_AGENT+1):
     for p in range(P_DIM):
-        
-        up_m_t = -K1 * sum(data[m]["Y"][t][j] @ data[m]["Y"][t][j].T @ data[m]["Y"][t][p] for j in range(1, p+1))
-        up_m_t = up_m_t + K2 * (NB_AGENT/L_DIM_LIST[m-1]) * data[m]["Z"][t][p]
-        up_m_t = data[m]["U"][t][p] + EPS * up_m_t
-        data[m]["U"][t+1].append(up_m_t)
+
+        #Updating the data dictionary to add entry on values' history for the p-th principal component for each agent
+        up_m_t_list = [data[m]["U"][t][p] for m in range(1, NB_AGENT+1)]
+        initialize_initial_values(data, up_m_t_list)
+
+        #Distributed averaging consensus on the vector up_m(t) to find yp_m(t)
+        distributed_linear_iteration(data, W)
+
+        for m in range(1, NB_AGENT+1):
+
+            #Storing the last estimated p-th principal component as the vector yp_m(t) for each agent
+            data[m]["Y"][t].append(data[m]["x"][-1])
+
+            #Resetting the values' history entry to prepare for next the principal component's computing for each agent
+            del data[m]["x"]
+
+
+
+def compute_Z_t(data, W, t):
+    """
+    #STEP 2: AVERAGE CONSENSUS ON THE SUM TERMS ON THE LAST TERM OF THE UPDATE RULE TO FIND MATRIX Z_m(t) = (z1_m(t) ... zP_m(t)) FOR EACH AGENT m
+
+    return:
+        None
+    """
+    
+    for p in range(P_DIM):
+
+        #Computing the p-th term in the last sum term in the update rule for each agent
+        last_term_list = [data[m]["X"] @ data[m]["X"].T @ data[m]["Y"][t][p] for m in range(1, NB_AGENT+1)]
+
+        #Updating the data dictionary to add entry on values' history for the vector zp_m(t) for each agent
+        initialize_initial_values(data, last_term_list)
+
+        #Distributed averaging consensus on the yp_m(t) vector to find zp_m(t)
+        distributed_linear_iteration(data, W)
+
+        for m in range(1, NB_AGENT+1):
+
+            #Storing the last estimated p-th vector of Z_m(t) for each agent
+            data[m]["Z"][t].append(data[m]["x"][-1])
+
+            #Resetting the values' history entry to prepare for the computing of the next vector of Z_m(t) for each agent
+            del data[m]["x"]
+
+
+
+def update_rule_t(data, t):
+    """
+    #STEP 3: COMPUTING A SIGLE ITERATION OF THE UPDATE RULE to find U_m(t) = (u1_m(t) ... uP_m(t)) FOR EACH AGENT m
+
+    return:
+        None
+    """
+
+    for m in range(1, NB_AGENT+1):
+        for p in range(P_DIM):
+            
+            up_m_t = -K1 * sum(data[m]["Y"][t][j] @ data[m]["Y"][t][j].T @ data[m]["Y"][t][p] for j in range(p))
+            up_m_t = up_m_t + K2 * (NB_AGENT/L_DIM_LIST[m-1]) * data[m]["Z"][t][p]
+            up_m_t = data[m]["U"][t][p] + EPS * up_m_t
+
+            up_m_t /= np.linalg.norm(up_m_t)
+            data[m]["U"][t+1].append(up_m_t)
 
 
 
 
 
+adjacency_matrix, data, W, X_m_init_vect_list = init_decentralized_PCA()
+show_graph(adjacency_matrix)
+decentralized_PCA(data, W, X_m_init_vect_list)
 
+print(data['Q'][:P_DIM])
+print()
+print(data[1]["U"][-1])
 
-"""
-data: dict[int, dict[str, Any]]
-
-data -> (m) agent m -> ('n') neighbors of agent m: list[int]
-                    -> ('d') degree of agent m: int
-                    -> ('x') temporary history of values computed during the consensus process of yp_m_t and zp_m_t: list[list[list[float]]]
-                    -> ('X') local data matrix X of agent m: list[list[float]]
-                    -> ('U') history of the matrices U_m(t) = (u1_m(t) ... uP_m(t)) computed at each time t: list[list[list[list[float]]]]
-                    -> ('Y') history of the matrices Y_m(t) = (y1_m(t) ... yP_m(t)) computed at each time t: list[list[list[list[float]]]]
-                    -> ('Z') history of the matrices Z_m(t) = (z1_m(t) ... zP_m(t)) computed at each time t: list[list[list[list[float]]]]
-     -> ('X') all data: list[list[float]]
-     -> ('Q') optimal matrix of eigenvectors: list[list[float]]
-
-"""
-
-X = np.hstack([X_m_init_vect_list[m][0] for m in range(NB_AGENT)])
-_, Q = spectral_decomposition(covariance_matrix(X, sum(L_DIM_LIST)))
-data["X"] = X
-data["Q"] = Q
+for m in range(1, NB_AGENT+1):
+    print(np.allclose(data['Q'][:P_DIM], data[m]["U"][-1]))
