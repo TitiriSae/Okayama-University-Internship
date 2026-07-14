@@ -50,6 +50,23 @@ np.random.seed(SEED)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #Initialization of the agent network
 adjacency_matrix, _, _= generate_instance_DA()
 show_graph(adjacency_matrix)
@@ -67,15 +84,11 @@ for m in range(1, NB_AGENT+1):
 
     #Updating the data dictionary to add information on the local data matrix and its eigenvectors matrix for each agent
     data[m]["X"] = X_m_init_vect_list[m-1][0]
-    _, Q = spectral_decomposition(covariance_matrix(data[m]["X"], L_DIM_LIST[m-1]))
-    data[m]["Q"] = Q
 
     #Preparing the key value "U", "Y" and "Z" of the data for each agent to store matrices U, Y and Z at each time
     data[m]["U"] = [X_m_init_vect_list[m-1][1]]
     data[m]["Y"] = []
     data[m]["Z"] = []
-
-    
 
 
 
@@ -84,20 +97,21 @@ for m in range(1, NB_AGENT+1):
 #BEGINNING OF ITERATION t=0
 t=0
 
-#Preparing to compute matrices Y(t) and Z(t) for this iteration
+#Preparing to compute matrices Y(t), Z(t) and U(t) for this iteration
 for m in range(1, NB_AGENT+1):
     data[m]["Y"].append([])
     data[m]["Z"].append([])
+    data[m]["U"].append([])
 
 
 
 
-#STEP 1: COMPUTING AND AVERAGE CONSENSUS OF THE MATRIX Y
+#STEP 1: COMPUTING AND AVERAGE CONSENSUS OF THE MATRIX Y_m(t) = (y1_m(t) ... yP_m(t)) FOR EACH AGENT m
 for p in range(P_DIM):
 
     #Updating the data dictionary to add entry on values' history for the p-th principal component for each agent
-    up_m_t = [data[m]["U"][t][p] for m in range(1, NB_AGENT+1)]
-    initialize_initial_values(data, up_m_t)
+    up_m_t_list = [data[m]["U"][t][p] for m in range(1, NB_AGENT+1)]
+    initialize_initial_values(data, up_m_t_list)
 
     #Distributed averaging consensus on the vector up_m(t) to find yp_m(t)
     distributed_linear_iteration(data, W)
@@ -114,7 +128,7 @@ for p in range(P_DIM):
 
 
 
-#STEP 2: COMPUTING AND AVERAGE CONSENSUS OF THE MATRIX Z
+#STEP 2: COMPUTING AND AVERAGE CONSENSUS OF THE MATRIX Z_m(t) = (z1_m(t) ... zP_m(t)) FOR EACH AGENT m
 for p in range(P_DIM):
 
     #Computing the p-th term in the last sum term in the update rule for each agent
@@ -138,17 +152,37 @@ for p in range(P_DIM):
 
 
 
-#STEP 3: COMPUTING A SIGLE ITERATION OF THE UPDATE RULE
-    for m in range(P_DIM):
-        for p in range(1, NB_AGENT+1):
-            pass
+#STEP 3: COMPUTING A SIGLE ITERATION OF THE UPDATE RULE to find U_m(t) = (u1_m(t) ... uP_m(t)) FOR EACH AGENT m
+for m in range(1, NB_AGENT+1):
+    for p in range(P_DIM):
+        
+        up_m_t = -K1 * sum(data[m]["Y"][t][j] @ data[m]["Y"][t][j].T @ data[m]["Y"][t][p] for j in range(1, p+1))
+        up_m_t = up_m_t + K2 * (NB_AGENT/L_DIM_LIST[m-1]) * data[m]["Z"][t][p]
+        up_m_t = data[m]["U"][t][p] + EPS * up_m_t
+        data[m]["U"][t+1].append(up_m_t)
+
+
+
+
 
 
 
 """
-    data[m]["PC"], _ = power_method(data[m]["X"], initial_vectors_m, L_DIM_LIST[m-1])
-    plot_PM(data[m]["PC"], Q)
-    plot_PM(data[m]["PC"], Q, 0, pm=True)
+data: dict[int, dict[str, Any]]
+
+data -> (m) agent m -> ('n') neighbors of agent m: list[int]
+                    -> ('d') degree of agent m: int
+                    -> ('x') temporary history of values computed during the consensus process of yp_m_t and zp_m_t: list[list[list[float]]]
+                    -> ('X') local data matrix X of agent m: list[list[float]]
+                    -> ('U') history of the matrices U_m(t) = (u1_m(t) ... uP_m(t)) computed at each time t: list[list[list[list[float]]]]
+                    -> ('Y') history of the matrices Y_m(t) = (y1_m(t) ... yP_m(t)) computed at each time t: list[list[list[list[float]]]]
+                    -> ('Z') history of the matrices Z_m(t) = (z1_m(t) ... zP_m(t)) computed at each time t: list[list[list[list[float]]]]
+     -> ('X') all data: list[list[float]]
+     -> ('Q') optimal matrix of eigenvectors: list[list[float]]
+
 """
 
-
+X = np.hstack([X_m_init_vect_list[m][0] for m in range(NB_AGENT)])
+_, Q = spectral_decomposition(covariance_matrix(X, sum(L_DIM_LIST)))
+data["X"] = X
+data["Q"] = Q

@@ -101,6 +101,7 @@ def power_method(X, initial_vectors, L):
 
     return:
         data: dict[int, list[list[list[float]]]
+            data -> (i) i-th principal component: history of values of the i-th principal component
         U: list[list[float]]
     """
 

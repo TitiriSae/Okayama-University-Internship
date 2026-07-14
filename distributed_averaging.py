@@ -80,9 +80,9 @@ def initialize_instance(adjacency_matrix):
 
     return: 
         data: dict[int, dict[str, Any]] 
-            data -> (i) node -> ("n") neighbors: list[int]
-                             -> ("d") degree: int
-                             -> ("x") history of values: list[float]
+            data -> (i) node i -> ('n') neighbors of node i: list[int]
+                               -> ('d') degree of node i: int
+                               -> ('x') history of values of node i: list[float]
     """
 
     #Verification of lists length
