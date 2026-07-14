@@ -291,7 +291,7 @@ def plot(data, Q, i=None, *, pm=False):
                 assert len(data[1]) == T_PM*P_DIM+1, "data isn't computed with the power_method function. Please set pm=False."
                 plt.plot(np.arange(T_PM*(j-1), T_PM*j+1), _get_norm_unsigned_ui_t_qi_range(data, j, Q, T_PM*(j-1), T_PM*j), color=cmap(j/(P_DIM)), label=f"u{j}(t), q{j}")
             else:
-                plt.plot(np.arange(len(data[1])), _get_norm_unsigned_ui_t_qi_range(data, j, Q), color=cmap(j/(P_DIM)), label=f"u{j}(t), q{j}")
+                plt.plot(np.arange(len(data[1])), _get_norm_unsigned_ui_t_qi_range(data, j, Q), color=cmap(j/P_DIM), label=f"u{j}(t), q{j}")
 
     elif i == -1:
         for a in range(1, P_DIM+1):

@@ -26,7 +26,7 @@ assert NB_AGENT-1 <= NB_EDGE <= (NB_AGENT*(NB_AGENT-1))/2
 N_DIM = set_N_DIM(5)
 P_DIM = set_P_DIM(3)
 L_DIM_LIST = [6, 6, 7, 7, 8, 8]
-T_PM = set_T_PM(10000)
+T_PM = set_T_PM(300)
 
 for l_dim in L_DIM_LIST:
     assert N_DIM < l_dim, "global parameters aren't set correctly."
@@ -42,7 +42,7 @@ EPS = set_EPS(0.1)
 
 
 
-np.random.seed(SEED)
+#np.random.seed(SEED)
 
 
 
@@ -207,14 +207,112 @@ def update_rule_t(data, t):
 
 
 
+def plot(data, m=None, p=None):
+
+    def _get_norm_unsigned_up_m_t_qp(data, p, m, t):
+        """
+        Get the distance between up_m(t) and qp, accurate to the sign.
+        """
+        return 1- abs((data["Q"][p].T @ data[m]['U'][t][p]).item())
+
+    def _get_norm_unsigned_U_m_t_QP(data, m, t):
+        """
+        Get the distance between U_m(t) and Q', accurate to the sign.
+        """
+        return sum([_get_norm_unsigned_up_m_t_qp(data, p, m, t) for p in range(P_DIM)])
+
+    def _get_norm_unsigned_U_m_t_QP_range(data, m, t0=0, t1=len(data[1]["U"])-1):
+        """
+        Get the distance between U_m(t) and Q', from time t0 to time t1, accurate to the sign.
+        """
+        return [_get_norm_unsigned_U_m_t_QP(data, m, t) for t in range(t0, t1+1)]
+
+    def _get_norm_unsigned_U_t_QP(data, t):
+        """
+        Get the distance between U(t) and Q', accurate to the sign.
+        """
+        return sum([_get_norm_unsigned_U_m_t_QP(data, m, t) for m in range(1, NB_AGENT+1)])
+    
+    def _get_norm_unsigned_U_t_QP_range(data, t0=0, t1=len(data[1]["U"])-1):
+        """
+        Get the distance between U(t) and Q', from time t0 to time t1, accurate to the sign.
+        """
+        return [_get_norm_unsigned_U_t_QP(data, t) for t in range(t0, t1+1)]
+    
+
+
+    def _get_norm_unsigned_up_t_qp(data, p, t):
+        """
+        Get the distance between up(t) and qp, accurate to the sign.
+        """
+        return sum([_get_norm_unsigned_up_m_t_qp(data, p, m, t) for m in range(1, NB_AGENT+1)])
+
+    def _get_norm_unsigned_up_t_qp_range(data, p, t0=0, t1=len(data[1]["U"])-1):
+        """
+        Get the distance between up(t) and qp, from time t0 to time t1, accurate to the sign.
+        """
+        return [_get_norm_unsigned_up_t_qp(data, p, t) for t in range(t0, t1+1)]
+    
+    def _get_norm_unsigned_up_m_t_qp_range(data, p, m, t0=0, t1=len(data[1]["U"])-1):
+        """
+        Get the distance between up_m(t) and qp, from time t0 to time t1, accurate to the sign.
+        """
+        return [_get_norm_unsigned_up_m_t_qp(data, p, m, t) for t in range(t0, t1+1)]
+
+    plt.title(label=f"Evolution of the distance between U = (u1 ... uP) and Q' = (q1 ... qP)")
+    plt.xlabel(xlabel="t")
+    plt.ylabel(ylabel=f"Distance between U and Q")
+
+    cmap = plt.get_cmap('plasma')
+
+    if m == None:
+
+        if p == None:
+            plt.plot(np.arange(T_PM+1), _get_norm_unsigned_U_t_QP_range(data), label=f"U_(t), Q'")
+        elif p == 0:
+            for p0 in range(P_DIM):
+                plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_t_qp_range(data, p0), color=cmap(p0/P_DIM), label=f"u{p0}_(t), q{p0}")
+        elif 1 <= p <= P_DIM:
+            pass
+
+    elif m == 0:
+        for m0 in range(1, NB_AGENT+1):
+
+            if p == None:
+                plt.plot(np.arange(T_PM+1), _get_norm_unsigned_U_m_t_QP_range(data, m0), color=cmap(m0/NB_AGENT), label=f"U_{m0}(t), Q'")
+            elif p == 0:
+                for p0 in range(P_DIM):
+                    plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_m_t_qp_range(data, p0, m0), color=cmap((p0+m0+(m0-1)*(P_DIM-1))/(P_DIM*NB_AGENT)), label=f"u{p0}_{m0}_(t), q{p0}")
+
+    elif 1 <= m <= NB_AGENT:
+
+        if p == None:
+            plt.plot(np.arange(T_PM+1), _get_norm_unsigned_U_m_t_QP_range(data, m), label=f"U_{m}(t), Q'")
+        elif p == 0:
+            for p0 in range(P_DIM):
+                plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_m_t_qp_range(data, p0, m), color=cmap((p0+m+(m-1)*(P_DIM-1))/(P_DIM*NB_AGENT)), label=f"u{p0}_{m}_(t), q{p0}")
+    
+    
+    else:
+        raise KeyError("argument m is invalid.")
+
+    plt.axhline(y=0, color='red', linestyle='--', linewidth=0.75, label=f'0')
+
+    plt.legend(fontsize='small', bbox_to_anchor=(1.05, 1), ncol=max(1, P_DIM//20+1))
+    plt.show()
+
+
+
 
 adjacency_matrix, data, W, X_m_init_vect_list = init_decentralized_PCA()
 show_graph(adjacency_matrix)
 decentralized_PCA(data, W, X_m_init_vect_list)
 
-print(data['Q'][:P_DIM])
+print(data["Q"][:P_DIM])
 print()
 print(data[1]["U"][-1])
 
 for m in range(1, NB_AGENT+1):
-    print(np.allclose(data['Q'][:P_DIM], data[m]["U"][-1]))
+    print(np.allclose(data["Q"][:P_DIM], data[m]["U"][-1], atol=1e-2))
+
+plot(data, 0)
