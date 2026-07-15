@@ -21,6 +21,8 @@ EPS = 0.1
 assert N_DIM < L_DIM, "global parameters aren't set correctly."
 assert P_DIM < N_DIM, "global parameters aren't set correctly."
 
+#CONVERGENCE_VAL = 1e-3
+
 
 
 def generate_instance_PM(L):
@@ -110,7 +112,7 @@ def power_method(X, initial_vectors, L):
 
     for p in range(1, P_DIM+1):
 
-        for t in range(T_PM):
+        for _ in range(T_PM):
 
             Sp_up_t = np.dot(Sp, data[p][-1])
             up_t1 = Sp_up_t/np.linalg.norm(Sp_up_t)
@@ -147,6 +149,12 @@ def update_rule(X, initial_vectors, L, k1, k2, eps):
 
             ui_t1 /= np.linalg.norm(ui_t1)
             data[i].append(ui_t1)
+        
+        """
+        if all( [np.linalg.norm(data[j][t+1] - data[j][t]) < CONVERGENCE_VAL for j in range(1, P_DIM+1)] ):
+            set_T_PM(t+1)
+            break
+        """
     
     U = get_U_t(data, T_PM)
     return data, U

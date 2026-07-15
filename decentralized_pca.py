@@ -13,20 +13,36 @@ SEED = 42
 #Number of agents NB_AGENT
 #Number of edges NB_EDGE
 #Number of iteration for the distributed linear iteration T_DA
-NB_AGENT = set_NB_AGENT(6)
-NB_EDGE = set_NB_EDGE(7)
-T_DA = set_T_DA(250)
+NB_AGENT = set_NB_AGENT(20)
+NB_EDGE = set_NB_EDGE(60)
+T_DA = set_T_DA(100)
 
 assert NB_AGENT-1 <= NB_EDGE <= (NB_AGENT*(NB_AGENT-1))/2
 
 #Dimension of a data N_DIM
 #Number of principal component wanted P_DIM
+N_DIM = set_N_DIM(10)
+P_DIM = set_P_DIM(6)
+
+def initilize_L_DIM_LIST(l_max=N_DIM*2, *, l_dim_list=None):
+    """
+    Initialize L_DIM_LIST.
+
+    return:
+        l_dim_list: list[int]
+    """
+
+    if l_dim_list != None:
+        return l_dim_list
+    
+    assert l_max > N_DIM
+    l_dim_list = [np.random.randint(N_DIM+1, l_max+1) for _ in range(NB_AGENT)]
+    return l_dim_list
+
 #Number of data sample for each agent L_DIM_LIST
 #Number of iteration for the update rule T_PM
-N_DIM = set_N_DIM(5)
-P_DIM = set_P_DIM(3)
-L_DIM_LIST = [6, 6, 7, 7, 8, 8]
-T_PM = set_T_PM(300)
+L_DIM_LIST = initilize_L_DIM_LIST()
+T_PM = set_T_PM(3000)
 
 for l_dim in L_DIM_LIST:
     assert N_DIM < l_dim, "global parameters aren't set correctly."
@@ -132,7 +148,7 @@ def decentralized_PCA(data, W, X_m_init_vect_list):
 
 def compute_Y_t(data, W, t):
     """
-    #STEP 1: AVERAGE CONSENSUS ON U_m(t) = (u1_m(t) ... uP_m(t)) TO FIND MATRIX Y_m(t) = (y1_m(t) ... yP_m(t)) FOR EACH AGENT m
+    #STEP 1: AVERAGE CONSENSUS ON U_m(t) = (u1_m(t) ... uP_m(t)) TO FIND MATRIX Y_m(t) = (y1_m(t) ... yP_m(t)) FOR EACH AGENT m.
 
     return:
         None
@@ -159,7 +175,7 @@ def compute_Y_t(data, W, t):
 
 def compute_Z_t(data, W, t):
     """
-    #STEP 2: AVERAGE CONSENSUS ON THE SUM TERMS ON THE LAST TERM OF THE UPDATE RULE TO FIND MATRIX Z_m(t) = (z1_m(t) ... zP_m(t)) FOR EACH AGENT m
+    #STEP 2: AVERAGE CONSENSUS ON THE SUM TERMS ON THE LAST TERM OF THE UPDATE RULE TO FIND MATRIX Z_m(t) = (z1_m(t) ... zP_m(t)) FOR EACH AGENT m.
 
     return:
         None
@@ -188,7 +204,7 @@ def compute_Z_t(data, W, t):
 
 def update_rule_t(data, t):
     """
-    #STEP 3: COMPUTING A SIGLE ITERATION OF THE UPDATE RULE to find U_m(t) = (u1_m(t) ... uP_m(t)) FOR EACH AGENT m
+    #STEP 3: COMPUTING A SINGLE ITERATION OF THE UPDATE RULE to find U_m(t) = (u1_m(t) ... uP_m(t)) FOR EACH AGENT m.
 
     return:
         None
@@ -206,20 +222,35 @@ def update_rule_t(data, t):
 
 
 
-
 def plot(data, m=None, p=None):
+    """
+    Plot function to visualize the distance (accurate to the sign) of the principal components’ estimations to the optimal principal components.
+
+    This function has two optional parameters to specify what to plot. The first optional parameter m (default value = None) has 3 different behaviors:
+        - m = None: the plot displays global information (a single curve that is the sum each agent’s curve)
+        - m = 0: Tthe plot displays local information for each agent (one curve associated to one agent)
+        - 1 <= m <= M: the plot only displays local information associated to the agent m (the curve associated to agent m).
+    
+    The second optional parameter p (default value = None) has 3 differents behaviors:
+        - p = None: the plot displays information on the total distance of all P principal components (a single curve that is the sum of each principal component’s curve)
+        - p = 0: the plot displays information on the distances of all P principal components (one curve associated to one principal component)
+        - 1 <= p <= P: the plot only display information associated to the pth principal component (the curve associated to the pth principal component).
+
+    return:
+        None
+    """
 
     def _get_norm_unsigned_up_m_t_qp(data, p, m, t):
         """
         Get the distance between up_m(t) and qp, accurate to the sign.
         """
-        return 1- abs((data["Q"][p].T @ data[m]['U'][t][p]).item())
+        return abs( abs((data["Q"][p-1].T @ data[m]["U"][t][p-1]).item()) -1)
 
     def _get_norm_unsigned_U_m_t_QP(data, m, t):
         """
         Get the distance between U_m(t) and Q', accurate to the sign.
         """
-        return sum([_get_norm_unsigned_up_m_t_qp(data, p, m, t) for p in range(P_DIM)])
+        return sum([_get_norm_unsigned_up_m_t_qp(data, p, m, t) for p in range(1, P_DIM+1)])
 
     def _get_norm_unsigned_U_m_t_QP_range(data, m, t0=0, t1=len(data[1]["U"])-1):
         """
@@ -238,8 +269,6 @@ def plot(data, m=None, p=None):
         Get the distance between U(t) and Q', from time t0 to time t1, accurate to the sign.
         """
         return [_get_norm_unsigned_U_t_QP(data, t) for t in range(t0, t1+1)]
-    
-
 
     def _get_norm_unsigned_up_t_qp(data, p, t):
         """
@@ -259,6 +288,7 @@ def plot(data, m=None, p=None):
         """
         return [_get_norm_unsigned_up_m_t_qp(data, p, m, t) for t in range(t0, t1+1)]
 
+
     plt.title(label=f"Evolution of the distance between U = (u1 ... uP) and Q' = (q1 ... qP)")
     plt.xlabel(xlabel="t")
     plt.ylabel(ylabel=f"Distance between U and Q")
@@ -270,10 +300,12 @@ def plot(data, m=None, p=None):
         if p == None:
             plt.plot(np.arange(T_PM+1), _get_norm_unsigned_U_t_QP_range(data), label=f"U_(t), Q'")
         elif p == 0:
-            for p0 in range(P_DIM):
+            for p0 in range(1, P_DIM+1):
                 plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_t_qp_range(data, p0), color=cmap(p0/P_DIM), label=f"u{p0}_(t), q{p0}")
         elif 1 <= p <= P_DIM:
-            pass
+            plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_t_qp_range(data, p), label=f"u{p}_(t), q{p}")
+        else:
+            raise KeyError("argument p is invalid.")
 
     elif m == 0:
         for m0 in range(1, NB_AGENT+1):
@@ -281,17 +313,24 @@ def plot(data, m=None, p=None):
             if p == None:
                 plt.plot(np.arange(T_PM+1), _get_norm_unsigned_U_m_t_QP_range(data, m0), color=cmap(m0/NB_AGENT), label=f"U_{m0}(t), Q'")
             elif p == 0:
-                for p0 in range(P_DIM):
+                for p0 in range(1, P_DIM+1):
                     plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_m_t_qp_range(data, p0, m0), color=cmap((p0+m0+(m0-1)*(P_DIM-1))/(P_DIM*NB_AGENT)), label=f"u{p0}_{m0}_(t), q{p0}")
+            elif 1 <= p <= P_DIM:
+                plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_m_t_qp_range(data, p, m0), color=cmap(m0/NB_AGENT), label=f"u{p}_{m0}_(t), q{p}")
+            else:
+                raise KeyError("argument p is invalid.")
 
     elif 1 <= m <= NB_AGENT:
 
         if p == None:
             plt.plot(np.arange(T_PM+1), _get_norm_unsigned_U_m_t_QP_range(data, m), label=f"U_{m}(t), Q'")
         elif p == 0:
-            for p0 in range(P_DIM):
-                plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_m_t_qp_range(data, p0, m), color=cmap((p0+m+(m-1)*(P_DIM-1))/(P_DIM*NB_AGENT)), label=f"u{p0}_{m}_(t), q{p0}")
-    
+            for p0 in range(1, P_DIM+1):
+                plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_m_t_qp_range(data, p0, m), color=cmap(p0/P_DIM), label=f"u{p0}_{m}_(t), q{p0}")
+        elif 1 <= p <= P_DIM:
+            plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_m_t_qp_range(data, p, m), label=f"u{p}_{m}_(t), q{p}")
+        else:
+            raise KeyError("argument p is invalid.")
     
     else:
         raise KeyError("argument m is invalid.")
@@ -313,6 +352,14 @@ print()
 print(data[1]["U"][-1])
 
 for m in range(1, NB_AGENT+1):
-    print(np.allclose(data["Q"][:P_DIM], data[m]["U"][-1], atol=1e-2))
-
-plot(data, 0)
+    print(np.allclose(np.abs(data["Q"][:P_DIM]), np.abs(data[m]["U"][-1]), atol=1e-3))
+print()
+for m in range(1, NB_AGENT+1):
+    print(np.allclose(np.abs(data["Q"][:P_DIM]), np.abs(data[m]["U"][-1]), atol=1e-5))
+print()
+for m in range(1, NB_AGENT+1):
+    print(np.allclose(np.abs(data["Q"][:P_DIM]), np.abs(data[m]["U"][-1]), atol=1e-7))
+print()
+for m in range(1, NB_AGENT+1):
+    print(np.allclose(np.abs(data["Q"][:P_DIM]), np.abs(data[m]["U"][-1])))
+plot(data)

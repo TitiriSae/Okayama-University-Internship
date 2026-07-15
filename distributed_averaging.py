@@ -11,7 +11,9 @@ VAL_RANGE_DA = 100
 #Number of iteration T_DA
 NB_AGENT = 50
 NB_EDGE = 200
-T_DA = 30
+T_DA = 3000
+
+#CONSENSUS_VAL = 1e-10
 
 
 
@@ -171,7 +173,11 @@ def distributed_linear_iteration(data, W):
                 x_i_t += W[i-1][j-1]*data[j]["x"][t-1]
             #Store value in the history
             data[i]["x"].append(x_i_t)
-
+        """
+        if all( [abs(data[j]["x"][t] - data[i]["x"][t-1]) < CONSENSUS_VAL for j in range(1, NB_AGENT+1)] ):
+            set_T_DA(t)
+            return
+        """
 
 
 #Setter functions
