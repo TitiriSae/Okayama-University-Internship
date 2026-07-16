@@ -3,17 +3,6 @@ import matplotlib.pyplot as plt
 import networkx as nx
 
 
-SEED = 42
-VAL_RANGE_DA = 100
-
-#Number of nodes N
-#Number of edges M
-#Number of iteration T_DA
-NB_AGENT = 50
-NB_EDGE = 200
-T_DA = 3000
-
-#CONSENSUS_VAL = 1e-10
 
 
 
@@ -24,7 +13,6 @@ def generate_instance_DA():
     return: 
         adjacency_matrix: list[list[int]]
         pos: dict[int, list[float]]
-        initial_values: list[float]
     """
 
     assert NB_AGENT-1 <= NB_EDGE <= (NB_AGENT*(NB_AGENT-1))/2
@@ -69,12 +57,18 @@ def generate_instance_DA():
     #Convert graph to adjacency matrix
     adjacency_matrix = np.where(nx.to_numpy_array(graph), 1, 0)
 
+    return adjacency_matrix, pos
+
+def generate_initial_values():
+    """
+    Generate random values between 0 and VAL_RANGE_DA.
+
+    return:
+        initial_values: list[float]
+    """
     #Random initial values
     initial_values = VAL_RANGE_DA*np.random.rand(NB_AGENT)
-
-    return adjacency_matrix, pos, initial_values
-
-
+    return initial_values
 
 def initialize_instance(adjacency_matrix):
     """
@@ -322,7 +316,22 @@ def plot(data, i=None):
 
 
 if __name__ == "__main__":
+
+    SEED = 42
     np.random.seed(SEED)
+
+    VAL_RANGE_DA = 100
+
+    #Number of nodes N
+    #Number of edges M
+    #Number of iteration T_DA
+    NB_AGENT = 50
+    NB_EDGE = 200
+    T_DA = 50
+
+    #CONSENSUS_VAL = 1e-10
+
+
 
     #Example of a adjacency matrix of an undirected graph
     """
@@ -345,10 +354,11 @@ if __name__ == "__main__":
     """
 
     #Random generation
-    adj, pos, x_0 = generate_instance_DA()
+    adj, pos = generate_instance_DA()
     show_graph(adj, pos)
 
     data = initialize_instance(adj)
+    x_0 = generate_initial_values()
     initialize_initial_values(data, x_0)
 
     #Algorithm 

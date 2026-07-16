@@ -8,60 +8,6 @@ import matplotlib.pyplot as plt
 
 
 
-SEED = 42
-
-#Number of agents NB_AGENT
-#Number of edges NB_EDGE
-#Number of iteration for the distributed linear iteration T_DA
-NB_AGENT = set_NB_AGENT(20)
-NB_EDGE = set_NB_EDGE(60)
-T_DA = set_T_DA(100)
-
-assert NB_AGENT-1 <= NB_EDGE <= (NB_AGENT*(NB_AGENT-1))/2
-
-#Dimension of a data N_DIM
-#Number of principal component wanted P_DIM
-N_DIM = set_N_DIM(10)
-P_DIM = set_P_DIM(6)
-
-def initilize_L_DIM_LIST(l_max=N_DIM*2, *, l_dim_list=None):
-    """
-    Initialize L_DIM_LIST.
-
-    return:
-        l_dim_list: list[int]
-    """
-
-    if l_dim_list != None:
-        return l_dim_list
-    
-    assert l_max > N_DIM
-    l_dim_list = [np.random.randint(N_DIM+1, l_max+1) for _ in range(NB_AGENT)]
-    return l_dim_list
-
-#Number of data sample for each agent L_DIM_LIST
-#Number of iteration for the update rule T_PM
-L_DIM_LIST = initilize_L_DIM_LIST()
-T_PM = set_T_PM(3000)
-
-for l_dim in L_DIM_LIST:
-    assert N_DIM < l_dim, "global parameters aren't set correctly."
-assert P_DIM < N_DIM, "global parameters aren't set correctly."
-assert len(L_DIM_LIST) == NB_AGENT, "global parameters aren't set correctly."
-
-#Parameter of the update rule K1
-#Parameter of the update rule K2
-#Parameter of the update rule EPS
-K1 = set_K1(0.2)
-K2 = set_K2(0.4)
-EPS = set_EPS(0.1)
-
-
-
-#np.random.seed(SEED)
-
-
-
 
 
 def init_decentralized_PCA():
@@ -78,7 +24,7 @@ def init_decentralized_PCA():
     """
 
     #Initialization of the agent network
-    adjacency_matrix, _, _= generate_instance_DA()
+    adjacency_matrix, _ = generate_instance_DA()
     #show_graph(adjacency_matrix)
 
     #Updating the data dictionary to add information on the neighbours, degree for each agent
@@ -294,6 +240,7 @@ def plot(data, m=None, p=None):
     plt.ylabel(ylabel=f"Distance between U and Q")
 
     cmap = plt.get_cmap('plasma')
+    m0, p0 = 1, 1
 
     if m == None:
 
@@ -337,29 +284,79 @@ def plot(data, m=None, p=None):
 
     plt.axhline(y=0, color='red', linestyle='--', linewidth=0.75, label=f'0')
 
-    plt.legend(fontsize='small', bbox_to_anchor=(1.05, 1), ncol=max(1, P_DIM//20+1))
+    plt.legend(fontsize='small', bbox_to_anchor=(1.05, 1), ncol=max(1, (m0*p0)//20+1))
     plt.show()
 
 
+if __name__ == "__main__":
 
+    SEED = 14
+    np.random.seed(SEED)
 
-adjacency_matrix, data, W, X_m_init_vect_list = init_decentralized_PCA()
-show_graph(adjacency_matrix)
-decentralized_PCA(data, W, X_m_init_vect_list)
+    #Number of agents NB_AGENT
+    #Number of edges NB_EDGE
+    #Number of iteration for the distributed linear iteration T_DA
+    NB_AGENT = set_NB_AGENT(10)
+    NB_EDGE = set_NB_EDGE(30)
+    T_DA = set_T_DA(100)
 
-print(data["Q"][:P_DIM])
-print()
-print(data[1]["U"][-1])
+    assert NB_AGENT-1 <= NB_EDGE <= (NB_AGENT*(NB_AGENT-1))/2
 
-for m in range(1, NB_AGENT+1):
-    print(np.allclose(np.abs(data["Q"][:P_DIM]), np.abs(data[m]["U"][-1]), atol=1e-3))
-print()
-for m in range(1, NB_AGENT+1):
-    print(np.allclose(np.abs(data["Q"][:P_DIM]), np.abs(data[m]["U"][-1]), atol=1e-5))
-print()
-for m in range(1, NB_AGENT+1):
-    print(np.allclose(np.abs(data["Q"][:P_DIM]), np.abs(data[m]["U"][-1]), atol=1e-7))
-print()
-for m in range(1, NB_AGENT+1):
-    print(np.allclose(np.abs(data["Q"][:P_DIM]), np.abs(data[m]["U"][-1])))
-plot(data)
+    #Dimension of a data N_DIM
+    #Number of principal component wanted P_DIM
+    N_DIM = set_N_DIM(5)
+    P_DIM = set_P_DIM(3)
+
+    def initilize_L_DIM_LIST(l_max=N_DIM*2, *, l_dim_list=None):
+        """
+        Initialize L_DIM_LIST.
+
+        return:
+            l_dim_list: list[int]
+        """
+
+        if l_dim_list != None:
+            return l_dim_list
+        
+        assert l_max > N_DIM
+        l_dim_list = [np.random.randint(N_DIM+1, l_max+1) for _ in range(NB_AGENT)]
+        return l_dim_list
+
+    #Number of data sample for each agent L_DIM_LIST
+    #Number of iteration for the update rule T_PM
+    L_DIM_LIST = initilize_L_DIM_LIST()
+    T_PM = set_T_PM(2000)
+
+    for l_dim in L_DIM_LIST:
+        assert N_DIM < l_dim, "global parameters aren't set correctly."
+    assert P_DIM < N_DIM, "global parameters aren't set correctly."
+    assert len(L_DIM_LIST) == NB_AGENT, "global parameters aren't set correctly."
+
+    #Parameter of the update rule K1
+    #Parameter of the update rule K2
+    #Parameter of the update rule EPS
+    K1 = set_K1(0.2)
+    K2 = set_K2(0.4)
+    EPS = set_EPS(0.1)
+
+    adjacency_matrix, data, W, X_m_init_vect_list = init_decentralized_PCA()
+    show_graph(adjacency_matrix)
+    decentralized_PCA(data, W, X_m_init_vect_list)
+
+    print("Accuracy to 1e-3:")
+    for m in range(1, NB_AGENT+1):
+        print(np.allclose(np.abs(data["Q"][:P_DIM]), np.abs(data[m]["U"][-1]), atol=1e-3))
+
+    print("Accuracy to 1e-4:")
+    for m in range(1, NB_AGENT+1):
+        print(np.allclose(np.abs(data["Q"][:P_DIM]), np.abs(data[m]["U"][-1]), atol=1e-4))
+
+    print("Accuracy to 1e-5:")
+    for m in range(1, NB_AGENT+1):
+        print(np.allclose(np.abs(data["Q"][:P_DIM]), np.abs(data[m]["U"][-1]), atol=1e-5))
+
+    print("Accurate")
+    for m in range(1, NB_AGENT+1):
+        print(np.allclose(np.abs(data["Q"][:P_DIM]), np.abs(data[m]["U"][-1])))
+    
+    plot(data)

@@ -2,26 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-SEED = 42
-
-#Sample of dimension N_DIM
-#Number of sample L_DIM
-#Number of dimension of the subspace P_DIM
-#Number of iteration T per principal component
-N_DIM = 10
-L_DIM = 15
-P_DIM = 6
-T_PM = 5000
-
-K1 = 0.2
-K2 = 0.4
-EPS = 0.1
-
-#Verifications of global dimension parameters
-assert N_DIM < L_DIM, "global parameters aren't set correctly."
-assert P_DIM < N_DIM, "global parameters aren't set correctly."
-
-#CONVERGENCE_VAL = 1e-3
 
 
 
@@ -320,7 +300,30 @@ def plot(data, Q, i=None, *, pm=False):
 
 
 if __name__ == "__main__":
+
+    SEED = 42
     np.random.seed(SEED)
+
+    #Sample of dimension N_DIM
+    #Number of sample L_DIM
+    #Number of dimension of the subspace P_DIM
+    #Number of iteration T per principal component
+    N_DIM = 10
+    L_DIM = 15
+    P_DIM = 6
+    T_PM = 5000
+
+    K1 = 0.2
+    K2 = 0.4
+    EPS = 0.1
+
+    #Verifications of global dimension parameters
+    assert N_DIM < L_DIM, "global parameters aren't set correctly."
+    assert P_DIM < N_DIM, "global parameters aren't set correctly."
+
+    #CONVERGENCE_VAL = 1e-3
+
+
 
     X, initial_vectors = generate_instance_PM(L_DIM)
     S = covariance_matrix(X, L_DIM)
