@@ -6,7 +6,7 @@ import networkx as nx
 
 
 
-def generate_instance_DA():
+def generate_instance_DA(global_var):
     """
     Generates randomly a symetrical adjacency matrix (with zero diagonal) and the initial values of the nodes.
 
@@ -14,6 +14,8 @@ def generate_instance_DA():
         adjacency_matrix: list[list[int]]
         pos: dict[int, list[float]]
     """
+    NB_AGENT = global_var["NB_AGENT"]
+    NB_EDGE = global_var["NB_EDGE"]
 
     assert NB_AGENT-1 <= NB_EDGE <= (NB_AGENT*(NB_AGENT-1))/2
 
@@ -59,18 +61,20 @@ def generate_instance_DA():
 
     return adjacency_matrix, pos
 
-def generate_initial_values():
+def generate_initial_values(global_var):
     """
     Generate random values between 0 and VAL_RANGE_DA.
 
     return:
         initial_values: list[float]
     """
+    NB_AGENT = global_var["NB_AGENT"]
+
     #Random initial values
-    initial_values = VAL_RANGE_DA*np.random.rand(NB_AGENT)
+    initial_values = global_var["VAL_RANGE"]*np.random.rand(NB_AGENT)
     return initial_values
 
-def initialize_instance(adjacency_matrix):
+def initialize_instance(global_var, adjacency_matrix):
     """
     Return instance's data defined with by the graph and the initial values of each nodes in dict format.
 
@@ -79,6 +83,7 @@ def initialize_instance(adjacency_matrix):
             data -> (i) node i -> ('n') neighbors of node i: list[int]
                                -> ('d') degree of node i: int
     """
+    NB_AGENT = global_var["NB_AGENT"]
 
     #Verification of lists length
     assert np.shape(adjacency_matrix)[0] == np.shape(adjacency_matrix)[1]
@@ -96,7 +101,7 @@ def initialize_instance(adjacency_matrix):
 
 
 
-def initialize_initial_values(data, initial_values):
+def initialize_initial_values(global_var, data, initial_values):
     """
     Add an entry "x" to the dictionary to store the values' history during the averaging consensus.
     data: dict[int, dict[str, Any]] 
@@ -106,6 +111,8 @@ def initialize_initial_values(data, initial_values):
     return:
         None
     """
+    NB_AGENT = global_var["NB_AGENT"]
+
     #Verification of lists length
     assert len(data) == len(initial_values)
 
@@ -115,7 +122,7 @@ def initialize_initial_values(data, initial_values):
 
 
 
-def initialize_local_degree_weight(data):
+def initialize_local_degree_weight(global_var, data):
     """
     The weight matrix W is defined as :
     Wij = 0 if {i, j} not in E and i != j                                           (sparsity constraint of W)
@@ -125,6 +132,7 @@ def initialize_local_degree_weight(data):
     return:
         W: list[list[float]]
     """
+    NB_AGENT = global_var["NB_AGENT"]
 
     #Ignoring Wii for now
     W = [
@@ -141,13 +149,16 @@ def initialize_local_degree_weight(data):
 
 
 
-def distributed_linear_iteration(data, W):
+def distributed_linear_iteration(global_var, data, W):
     """
     Apply the distributed linear iterations for t iterations on the "x" entry of the data.
 
     return: 
         None
     """
+    NB_AGENT = global_var["NB_AGENT"]
+    T_DA = global_var["T_DA"]
+
 
     #Convergence conditions verification
     assert np.allclose(np.sum(W, axis=0), np.ones(NB_AGENT), atol=1e-12)
@@ -172,41 +183,6 @@ def distributed_linear_iteration(data, W):
             set_T_DA(t)
             return
         """
-
-
-#Setter functions
-def set_NB_AGENT(nb_agent):
-    """
-    Setter for the global variable NB_AGENT.
-
-    return:
-        nb_agent: int
-    """
-    global NB_AGENT
-    NB_AGENT = nb_agent
-    return nb_agent
-    
-def set_NB_EDGE(nb_edge):
-    """
-    Setter for the global variable NB_EDGE.
-
-    return:
-        nb_edge: int
-    """
-    global NB_EDGE
-    NB_EDGE = nb_edge
-    return nb_edge
-
-def set_T_DA(t_da):
-    """
-    Setter for the global variable T_DA.
-
-    return:
-        t_da: int
-    """
-    global T_DA
-    T_DA = t_da
-    return t_da
 
 
 
@@ -248,7 +224,7 @@ def show_graph(adjacency_matrix, positions=None):
     nx.draw(graph_1, positions, with_labels=True, node_size=100, font_size=8)
     plt.show()
 
-def plot(data, i=None):
+def plot(global_var, data, i=None):
     """
     Plot the data, especially the evolution of the values taken by the nodes.
     The plot is different depending on the parameter i:
@@ -259,8 +235,9 @@ def plot(data, i=None):
     return:
         None
     """
+    NB_AGENT = global_var["NB_AGENT"]
 
-    def _get_x_i_range(data, node, t0=0, t1=T_DA):
+    def _get_x_i_range(data, node, t0=0, t1=len(data[1]["x"])-1):
         """
         Returns the all the values taken by a node from time t0 to time t1, xi(t0) to xi(t1).
 
@@ -277,7 +254,7 @@ def plot(data, i=None):
         return:
             None
         """
-        plt.plot(np.arange(T_DA+1), _get_x_i_range(data, i), color=color ,label=f'x_{i}(t)')
+        plt.plot(np.arange(len(data[1]["x"])), _get_x_i_range(data, i), color=color ,label=f'x_{i}(t)')
 
     def _plot_x_t(data):
         """
@@ -317,19 +294,22 @@ def plot(data, i=None):
 
 if __name__ == "__main__":
 
-    SEED = 42
-    np.random.seed(SEED)
+    global_var = dict()
 
-    VAL_RANGE_DA = 100
+    global_var["SEED"] = 42
+    np.random.seed(global_var["SEED"])
 
-    #Number of nodes N
-    #Number of edges M
+    global_var["VAL_RANGE"] = 100
+
+    #Number of nodes NB_AGENT
+    #Number of edges NB_EDGE
     #Number of iteration T_DA
-    NB_AGENT = 50
-    NB_EDGE = 200
-    T_DA = 50
+    global_var["NB_AGENT"] = 50
+    global_var["NB_EDGE"] = 200
+    global_var["T_DA"] = 50
 
-    #CONSENSUS_VAL = 1e-10
+    global_var["CONSENSUS_VAL"] = 1e-10
+
 
 
 
@@ -354,15 +334,15 @@ if __name__ == "__main__":
     """
 
     #Random generation
-    adj, pos = generate_instance_DA()
+    adj, pos = generate_instance_DA(global_var)
     show_graph(adj, pos)
 
-    data = initialize_instance(adj)
-    x_0 = generate_initial_values()
-    initialize_initial_values(data, x_0)
+    data = initialize_instance(global_var, adj)
+    x_0 = generate_initial_values(global_var)
+    initialize_initial_values(global_var, data, x_0)
 
     #Algorithm 
-    W = initialize_local_degree_weight(data)
-    distributed_linear_iteration(data, W)
+    W = initialize_local_degree_weight(global_var, data)
+    distributed_linear_iteration(global_var, data, W)
 
-    plot(data)
+    plot(global_var, data)

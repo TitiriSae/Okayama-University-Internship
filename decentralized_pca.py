@@ -1,7 +1,5 @@
 from distributed_averaging import generate_instance_DA, initialize_instance, initialize_initial_values, initialize_local_degree_weight, distributed_linear_iteration, show_graph
-from distributed_averaging import set_NB_AGENT, set_NB_EDGE, set_T_DA
 from power_method import generate_instance_PM, covariance_matrix, spectral_decomposition
-from power_method import set_N_DIM, set_P_DIM, set_T_PM, set_K1, set_K2, set_EPS
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,7 +8,29 @@ import matplotlib.pyplot as plt
 
 
 
-def init_decentralized_PCA():
+def initialize_L_DIM_LIST(global_var, *, l_max=None, l_dim_list=None):
+    """
+    Initialize L_DIM_LIST.
+
+    return:
+        l_dim_list: list[int]
+    """
+    N_DIM = global_var["N_DIM"]
+    NB_AGENT = global_var["NB_AGENT"]
+
+    if l_dim_list != None:
+        return l_dim_list
+    
+    if l_max == None:
+        l_max = N_DIM*2
+    assert l_max > N_DIM
+
+    l_dim_list = [np.random.randint(N_DIM+1, l_max+1) for _ in range(NB_AGENT)]
+    return l_dim_list
+
+
+
+def init_decentralized_PCA(global_var):
     """
     Initialize an instance of the decentralized algorithm for PCA.
 
@@ -22,25 +42,26 @@ def init_decentralized_PCA():
         W: list[list[float]]
         X_m_init_vect_list: list[tuple[ list[list[float]], list[list[list[float]]] ]]
     """
+    NB_AGENT = global_var["NB_AGENT"]
+    L_DIM_LIST = global_var["L_DIM_LIST"]
 
     #Initialization of the agent network
-    adjacency_matrix, _ = generate_instance_DA()
-    #show_graph(adjacency_matrix)
+    adjacency_matrix, _ = generate_instance_DA(global_var)
 
     #Updating the data dictionary to add information on the neighbours, degree for each agent
-    data = initialize_instance(adjacency_matrix)
+    data = initialize_instance(global_var, adjacency_matrix)
 
     #Initialization of the weights matrix
-    W = initialize_local_degree_weight(data)
+    W = initialize_local_degree_weight(global_var, data)
 
     #Initialization of the data and initial vectors for the PCA instances for each agent
-    X_m_init_vect_list = [generate_instance_PM(L_DIM_LIST[m]) for m in range(NB_AGENT)]
+    X_m_init_vect_list = [generate_instance_PM(global_var, L_DIM_LIST[m]) for m in range(NB_AGENT)]
 
     return adjacency_matrix, data, W, X_m_init_vect_list
 
 
 
-def decentralized_PCA(data, W, X_m_init_vect_list):
+def decentralized_PCA(global_var, data, W, X_m_init_vect_list):
     """
     Apply the decentralized algorithm for PCA.
 
@@ -54,10 +75,14 @@ def decentralized_PCA(data, W, X_m_init_vect_list):
                         -> ('Z') history of the matrices Z_m(t) = (z1_m(t) ... zP_m(t)) computed at each time t: list[list[list[list[float]]]]
          -> ('X') global data: list[list[float]]
          -> ('Q') optimal matrix of eigenvectors: list[list[float]]
+         -> ('W') weight matrix: list[list[float]]
 
     return:
         None
     """
+    NB_AGENT = global_var["NB_AGENT"]
+    T_PM = global_var["T_PM"]
+    L_DIM_LIST = global_var["L_DIM_LIST"]
 
     #Updating data dictionary to start iterations
     for m in range(1, NB_AGENT+1):
@@ -80,34 +105,38 @@ def decentralized_PCA(data, W, X_m_init_vect_list):
             data[m]["U"].append([])
 
         #STEPS 
-        compute_Y_t(data, W, t)
-        compute_Z_t(data, W, t)
+        compute_Y_t(global_var, data, W, t)
+        compute_Z_t(global_var, data, W, t)
         update_rule_t(data, t)
 
-    #Adding global data and optimal matrix of eigenvectors to the data
+    #Adding global data, optimal matrix of eigenvectors, and the weight matrix to the data
     X = np.hstack([X_m_init_vect_list[m][0] for m in range(NB_AGENT)])
-    _, Q = spectral_decomposition(covariance_matrix(X, sum(L_DIM_LIST)))
+    _, Q = spectral_decomposition(covariance_matrix(global_var, X, sum(L_DIM_LIST)))
     data["X"] = X
     data["Q"] = np.hsplit(Q, Q.shape[1])
+    data["W"] = W
 
 
 
-def compute_Y_t(data, W, t):
+def compute_Y_t(global_var, data, W, t):
     """
     #STEP 1: AVERAGE CONSENSUS ON U_m(t) = (u1_m(t) ... uP_m(t)) TO FIND MATRIX Y_m(t) = (y1_m(t) ... yP_m(t)) FOR EACH AGENT m.
 
     return:
         None
     """
-
+    NB_AGENT = global_var["NB_AGENT"]
+    P_DIM = global_var["P_DIM"]
+    
     for p in range(P_DIM):
 
         #Updating the data dictionary to add entry on values' history for the p-th principal component for each agent
         up_m_t_list = [data[m]["U"][t][p] for m in range(1, NB_AGENT+1)]
-        initialize_initial_values(data, up_m_t_list)
+        initialize_initial_values(global_var, data, up_m_t_list)
 
         #Distributed averaging consensus on the vector up_m(t) to find yp_m(t)
-        distributed_linear_iteration(data, W)
+        global_var["T_DA"] = global_var["T_CONSENSUS_Y"]
+        distributed_linear_iteration(global_var, data, W)
 
         for m in range(1, NB_AGENT+1):
 
@@ -119,24 +148,27 @@ def compute_Y_t(data, W, t):
 
 
 
-def compute_Z_t(data, W, t):
+def compute_Z_t(global_var, data, W, t):
     """
     #STEP 2: AVERAGE CONSENSUS ON THE SUM TERMS ON THE LAST TERM OF THE UPDATE RULE TO FIND MATRIX Z_m(t) = (z1_m(t) ... zP_m(t)) FOR EACH AGENT m.
 
     return:
         None
     """
-    
+    NB_AGENT = global_var["NB_AGENT"]
+    P_DIM = global_var["P_DIM"]
+
     for p in range(P_DIM):
 
         #Computing the p-th term in the last sum term in the update rule for each agent
         last_term_list = [data[m]["X"] @ data[m]["X"].T @ data[m]["Y"][t][p] for m in range(1, NB_AGENT+1)]
 
         #Updating the data dictionary to add entry on values' history for the vector zp_m(t) for each agent
-        initialize_initial_values(data, last_term_list)
+        initialize_initial_values(global_var, data, last_term_list)
 
         #Distributed averaging consensus on the yp_m(t) vector to find zp_m(t)
-        distributed_linear_iteration(data, W)
+        global_var["T_DA"] = global_var["T_CONSENSUS_Z"]
+        distributed_linear_iteration(global_var, data, W)
 
         for m in range(1, NB_AGENT+1):
 
@@ -155,6 +187,12 @@ def update_rule_t(data, t):
     return:
         None
     """
+    NB_AGENT = global_var["NB_AGENT"]
+    P_DIM = global_var["P_DIM"]
+    L_DIM_LIST = global_var["L_DIM_LIST"]
+    K1 = global_var["K1"]
+    K2 = global_var["K2"]
+    EPS = global_var["EPS"]
 
     for m in range(1, NB_AGENT+1):
         for p in range(P_DIM):
@@ -185,6 +223,10 @@ def plot(data, m=None, p=None):
     return:
         None
     """
+    NB_AGENT = global_var["NB_AGENT"]
+    P_DIM = global_var["P_DIM"]
+    T_PM = global_var["T_PM"]
+
 
     def _get_norm_unsigned_up_m_t_qp(data, p, m, t):
         """
@@ -290,73 +332,63 @@ def plot(data, m=None, p=None):
 
 if __name__ == "__main__":
 
-    SEED = 14
-    np.random.seed(SEED)
+    global_var = dict()
+
+    global_var["SEED"] = 15
+    np.random.seed(global_var["SEED"])
 
     #Number of agents NB_AGENT
     #Number of edges NB_EDGE
-    #Number of iteration for the distributed linear iteration T_DA
-    NB_AGENT = set_NB_AGENT(10)
-    NB_EDGE = set_NB_EDGE(30)
-    T_DA = set_T_DA(100)
+    #Number of iteration for the distributed linear iteration for Y and Z T_CONSENSUS_Y T_CONSENSUS_Z
+    global_var["NB_AGENT"] = 10
+    global_var["NB_EDGE"] = 30
+    global_var["T_CONSENSUS_Y"] = 1
+    global_var["T_CONSENSUS_Z"] = 20
 
-    assert NB_AGENT-1 <= NB_EDGE <= (NB_AGENT*(NB_AGENT-1))/2
+    assert global_var["NB_AGENT"]-1 <= global_var["NB_EDGE"] <= (global_var["NB_AGENT"]*(global_var["NB_AGENT"]-1))/2
 
     #Dimension of a data N_DIM
     #Number of principal component wanted P_DIM
-    N_DIM = set_N_DIM(5)
-    P_DIM = set_P_DIM(3)
-
-    def initilize_L_DIM_LIST(l_max=N_DIM*2, *, l_dim_list=None):
-        """
-        Initialize L_DIM_LIST.
-
-        return:
-            l_dim_list: list[int]
-        """
-
-        if l_dim_list != None:
-            return l_dim_list
-        
-        assert l_max > N_DIM
-        l_dim_list = [np.random.randint(N_DIM+1, l_max+1) for _ in range(NB_AGENT)]
-        return l_dim_list
+    global_var["N_DIM"] = 5
+    global_var["P_DIM"] = 3
 
     #Number of data sample for each agent L_DIM_LIST
     #Number of iteration for the update rule T_PM
-    L_DIM_LIST = initilize_L_DIM_LIST()
-    T_PM = set_T_PM(2000)
+    global_var["L_DIM_LIST"] = initialize_L_DIM_LIST(global_var)
+    global_var["T_PM"] = 1000
 
-    for l_dim in L_DIM_LIST:
-        assert N_DIM < l_dim, "global parameters aren't set correctly."
-    assert P_DIM < N_DIM, "global parameters aren't set correctly."
-    assert len(L_DIM_LIST) == NB_AGENT, "global parameters aren't set correctly."
+    for l_dim in global_var["L_DIM_LIST"]:
+        assert global_var["N_DIM"] < l_dim, "global parameters aren't set correctly."
+    assert global_var["P_DIM"] < global_var["N_DIM"], "global parameters aren't set correctly."
+    assert len(global_var["L_DIM_LIST"]) == global_var["NB_AGENT"], "global parameters aren't set correctly."
 
     #Parameter of the update rule K1
     #Parameter of the update rule K2
     #Parameter of the update rule EPS
-    K1 = set_K1(0.2)
-    K2 = set_K2(0.4)
-    EPS = set_EPS(0.1)
+    global_var["K1"] = 0.2
+    global_var["K2"] = 0.4
+    global_var["EPS"] = 0.1
 
-    adjacency_matrix, data, W, X_m_init_vect_list = init_decentralized_PCA()
+
+
+    adjacency_matrix, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var)
     show_graph(adjacency_matrix)
-    decentralized_PCA(data, W, X_m_init_vect_list)
+    decentralized_PCA(global_var, data, W, X_m_init_vect_list)
+    
+    print("\nAccuracy to 1e-3:")
+    for m in range(1, global_var["NB_AGENT"]+1):
+        print(np.allclose(np.abs(data["Q"][:global_var["P_DIM"]]), np.abs(data[m]["U"][-1]), atol=1e-3))
 
-    print("Accuracy to 1e-3:")
-    for m in range(1, NB_AGENT+1):
-        print(np.allclose(np.abs(data["Q"][:P_DIM]), np.abs(data[m]["U"][-1]), atol=1e-3))
+    print("\nAccuracy to 1e-4:")
+    for m in range(1, global_var["NB_AGENT"]+1):
+        print(np.allclose(np.abs(data["Q"][:global_var["P_DIM"]]), np.abs(data[m]["U"][-1]), atol=1e-4))
 
-    print("Accuracy to 1e-4:")
-    for m in range(1, NB_AGENT+1):
-        print(np.allclose(np.abs(data["Q"][:P_DIM]), np.abs(data[m]["U"][-1]), atol=1e-4))
+    print("\nAccuracy to 1e-5:")
+    for m in range(1, global_var["NB_AGENT"]+1):
+        print(np.allclose(np.abs(data["Q"][:global_var["P_DIM"]]), np.abs(data[m]["U"][-1]), atol=1e-5))
 
-    print("Accuracy to 1e-5:")
-    for m in range(1, NB_AGENT+1):
-        print(np.allclose(np.abs(data["Q"][:P_DIM]), np.abs(data[m]["U"][-1]), atol=1e-5))
-
-    print("Accurate")
-    for m in range(1, NB_AGENT+1):
-        print(np.allclose(np.abs(data["Q"][:P_DIM]), np.abs(data[m]["U"][-1])))
+    print("\nAccurate")
+    for m in range(1, global_var["NB_AGENT"]+1):
+        print(np.allclose(np.abs(data["Q"][:global_var["P_DIM"]]), np.abs(data[m]["U"][-1])))
     
     plot(data)
