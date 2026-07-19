@@ -13,6 +13,7 @@ def generate_data_matrix(global_var, l):
         X: list[list[float]]
     """
     N_DIM = global_var["N_DIM"]
+    assert N_DIM < l, "global parameters aren't set correctly."
 
     X = np.random.random((N_DIM, l))
     X -= np.mean(X, axis=1, keepdims=True)
@@ -33,6 +34,7 @@ def generate_initial_vectors(global_var):
     """
     N_DIM = global_var["N_DIM"]
     P_DIM = global_var["P_DIM"]
+    assert P_DIM < N_DIM, "global parameters aren't set correctly."
 
     def _normalised_vector():
         """

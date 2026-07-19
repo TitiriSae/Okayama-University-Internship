@@ -17,7 +17,7 @@ def generate_graph(global_var):
     NB_AGENT = global_var["NB_AGENT"]
     NB_EDGE = global_var["NB_EDGE"]
 
-    assert NB_AGENT-1 <= NB_EDGE <= (NB_AGENT*(NB_AGENT-1))/2
+    assert NB_AGENT-1 <= NB_EDGE <= (NB_AGENT*(NB_AGENT-1))/2, "Impossible graph."
 
     #Create positions of nodes
     random_positions = np.random.random((NB_AGENT, 2))
