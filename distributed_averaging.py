@@ -236,8 +236,9 @@ def plot(global_var, data, i=None):
         None
     """
     NB_AGENT = global_var["NB_AGENT"]
+    T_DA = len(data[1]["x"])-1
 
-    def _get_x_i_range(data, node, t0=0, t1=len(data[1]["x"])-1):
+    def _get_x_i_range(data, node, t0=0, t1=T_DA):
         """
         Returns the all the values taken by a node from time t0 to time t1, xi(t0) to xi(t1).
 
@@ -254,7 +255,7 @@ def plot(global_var, data, i=None):
         return:
             None
         """
-        plt.plot(np.arange(len(data[1]["x"])), _get_x_i_range(data, i), color=color ,label=f'x_{i}(t)')
+        plt.plot(np.arange(T_DA+1), _get_x_i_range(data, i), color=color ,label=f'x_{i}(t)')
 
     def _plot_x_t(data):
         """

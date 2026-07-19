@@ -205,7 +205,7 @@ def update_rule_t(global_var, data, t):
 
 
 
-def plot(global_var, data, m=None, p=None):
+def plot(global_var, data, m=None, p=None, *, show=True, label=None, color=None):
     """
     Plot function to visualize the distance (accurate to the sign) of the principal components’ estimations to the optimal principal components.
 
@@ -224,7 +224,7 @@ def plot(global_var, data, m=None, p=None):
     """
     NB_AGENT = global_var["NB_AGENT"]
     P_DIM = global_var["P_DIM"]
-    T_PM = global_var["T_PM"]
+    T_PM = len(data[1]["U"])-1
 
 
     def _get_norm_unsigned_up_m_t_qp(data, p, m, t):
@@ -239,7 +239,7 @@ def plot(global_var, data, m=None, p=None):
         """
         return sum([_get_norm_unsigned_up_m_t_qp(data, p, m, t) for p in range(1, P_DIM+1)])
 
-    def _get_norm_unsigned_U_m_t_QP_range(data, m, t0=0, t1=len(data[1]["U"])-1):
+    def _get_norm_unsigned_U_m_t_QP_range(data, m, t0=0, t1=T_PM):
         """
         Get the distance between U_m(t) and Q', from time t0 to time t1, accurate to the sign.
         """
@@ -251,7 +251,7 @@ def plot(global_var, data, m=None, p=None):
         """
         return sum([_get_norm_unsigned_U_m_t_QP(data, m, t) for m in range(1, NB_AGENT+1)])
     
-    def _get_norm_unsigned_U_t_QP_range(data, t0=0, t1=len(data[1]["U"])-1):
+    def _get_norm_unsigned_U_t_QP_range(data, t0=0, t1=T_PM):
         """
         Get the distance between U(t) and Q', from time t0 to time t1, accurate to the sign.
         """
@@ -263,22 +263,19 @@ def plot(global_var, data, m=None, p=None):
         """
         return sum([_get_norm_unsigned_up_m_t_qp(data, p, m, t) for m in range(1, NB_AGENT+1)])
 
-    def _get_norm_unsigned_up_t_qp_range(data, p, t0=0, t1=len(data[1]["U"])-1):
+    def _get_norm_unsigned_up_t_qp_range(data, p, t0=0, t1=T_PM):
         """
         Get the distance between up(t) and qp, from time t0 to time t1, accurate to the sign.
         """
         return [_get_norm_unsigned_up_t_qp(data, p, t) for t in range(t0, t1+1)]
     
-    def _get_norm_unsigned_up_m_t_qp_range(data, p, m, t0=0, t1=len(data[1]["U"])-1):
+    def _get_norm_unsigned_up_m_t_qp_range(data, p, m, t0=0, t1=T_PM):
         """
         Get the distance between up_m(t) and qp, from time t0 to time t1, accurate to the sign.
         """
         return [_get_norm_unsigned_up_m_t_qp(data, p, m, t) for t in range(t0, t1+1)]
 
 
-    plt.title(label=f"Evolution of the distance between U = (u1 ... uP) and Q' = (q1 ... qP)")
-    plt.xlabel(xlabel="t")
-    plt.ylabel(ylabel=f"Distance between U and Q")
 
     cmap = plt.get_cmap('plasma')
     m0, p0 = 1, 1
@@ -286,25 +283,33 @@ def plot(global_var, data, m=None, p=None):
     if m == None:
 
         if p == None:
-            plt.plot(np.arange(T_PM+1), _get_norm_unsigned_U_t_QP_range(data), label=f"U_(t), Q'")
+            if label==None:
+                label=f"U_(t), Q'"
+            plt.plot(np.arange(T_PM+1), _get_norm_unsigned_U_t_QP_range(data), label=label, color=color)
+
         elif p == 0:
             for p0 in range(1, P_DIM+1):
                 plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_t_qp_range(data, p0), color=cmap(p0/P_DIM), label=f"u{p0}_(t), q{p0}")
+
         elif 1 <= p <= P_DIM:
             plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_t_qp_range(data, p), label=f"u{p}_(t), q{p}")
+
         else:
             raise KeyError("argument p is invalid.")
 
     elif m == 0:
+    
         for m0 in range(1, NB_AGENT+1):
-
             if p == None:
                 plt.plot(np.arange(T_PM+1), _get_norm_unsigned_U_m_t_QP_range(data, m0), color=cmap(m0/NB_AGENT), label=f"U_{m0}(t), Q'")
+            
             elif p == 0:
                 for p0 in range(1, P_DIM+1):
                     plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_m_t_qp_range(data, p0, m0), color=cmap((p0+m0+(m0-1)*(P_DIM-1))/(P_DIM*NB_AGENT)), label=f"u{p0}_{m0}_(t), q{p0}")
+            
             elif 1 <= p <= P_DIM:
                 plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_m_t_qp_range(data, p, m0), color=cmap(m0/NB_AGENT), label=f"u{p}_{m0}_(t), q{p}")
+            
             else:
                 raise KeyError("argument p is invalid.")
 
@@ -312,21 +317,28 @@ def plot(global_var, data, m=None, p=None):
 
         if p == None:
             plt.plot(np.arange(T_PM+1), _get_norm_unsigned_U_m_t_QP_range(data, m), label=f"U_{m}(t), Q'")
+        
         elif p == 0:
             for p0 in range(1, P_DIM+1):
                 plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_m_t_qp_range(data, p0, m), color=cmap(p0/P_DIM), label=f"u{p0}_{m}_(t), q{p0}")
+        
         elif 1 <= p <= P_DIM:
             plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_m_t_qp_range(data, p, m), label=f"u{p}_{m}_(t), q{p}")
+        
         else:
             raise KeyError("argument p is invalid.")
     
     else:
         raise KeyError("argument m is invalid.")
 
-    plt.axhline(y=0, color='red', linestyle='--', linewidth=0.75, label=f'0')
-
-    plt.legend(fontsize='small', bbox_to_anchor=(1.05, 1), ncol=max(1, (m0*p0)//20+1))
-    plt.show()
+    if show:
+        plt.title(label=f"Evolution of the distance between U = (u1 ... uP) and Q' = (q1 ... qP)")
+        plt.xlabel(xlabel="t")
+        plt.ylabel(ylabel=f"Distance between U and Q")
+        
+        plt.axhline(y=0, color='red', linestyle='--', linewidth=0.75, label=f'0')
+        plt.legend(fontsize='small', bbox_to_anchor=(1.05, 1), ncol=max(1, (m0*p0)//20+1))
+        plt.show()
 
 
 
