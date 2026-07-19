@@ -1,5 +1,5 @@
-from distributed_averaging import generate_instance_DA, initialize_instance, initialize_initial_values, initialize_local_degree_weight, distributed_linear_iteration, show_graph
-from power_method import generate_instance_PM, covariance_matrix, spectral_decomposition
+from distributed_averaging import generate_graph, init_graph, init_initial_values, init_local_degree_weight, distributed_linear_iteration, show_graph
+from power_method import generate_data_matrix, generate_initial_vectors, covariance_matrix, spectral_decomposition
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,9 +8,9 @@ import matplotlib.pyplot as plt
 
 
 
-def initialize_L_DIM_LIST(global_var, *, l_max=None, l_dim_list=None):
+def generate_L_DIM_LIST(global_var, *, l_max=None, l_dim_list=None):
     """
-    Initialize L_DIM_LIST.
+    Generate L_DIM_LIST.
 
     return:
         l_dim_list: list[int]
@@ -46,16 +46,16 @@ def init_decentralized_PCA(global_var):
     L_DIM_LIST = global_var["L_DIM_LIST"]
 
     #Initialization of the agent network
-    adjacency_matrix, _ = generate_instance_DA(global_var)
+    adjacency_matrix, _ = generate_graph(global_var)
 
     #Updating the data dictionary to add information on the neighbours, degree for each agent
-    data = initialize_instance(global_var, adjacency_matrix)
+    data = init_graph(global_var, adjacency_matrix)
 
     #Initialization of the weights matrix
-    W = initialize_local_degree_weight(global_var, data)
+    W = init_local_degree_weight(global_var, data)
 
     #Initialization of the data and initial vectors for the PCA instances for each agent
-    X_m_init_vect_list = [generate_instance_PM(global_var, L_DIM_LIST[m]) for m in range(NB_AGENT)]
+    X_m_init_vect_list = [(generate_data_matrix(global_var, L_DIM_LIST[m]), generate_initial_vectors(global_var)) for m in range(NB_AGENT)]
 
     return adjacency_matrix, data, W, X_m_init_vect_list
 
@@ -132,7 +132,7 @@ def compute_Y_t(global_var, data, W, t):
 
         #Updating the data dictionary to add entry on values' history for the p-th principal component for each agent
         up_m_t_list = [data[m]["U"][t][p] for m in range(1, NB_AGENT+1)]
-        initialize_initial_values(global_var, data, up_m_t_list)
+        init_initial_values(global_var, data, up_m_t_list)
 
         #Distributed averaging consensus on the vector up_m(t) to find yp_m(t)
         global_var["T_DA"] = global_var["T_CONSENSUS_Y"]
@@ -164,7 +164,7 @@ def compute_Z_t(global_var, data, W, t):
         last_term_list = [data[m]["X"] @ data[m]["X"].T @ data[m]["Y"][t][p] for m in range(1, NB_AGENT+1)]
 
         #Updating the data dictionary to add entry on values' history for the vector zp_m(t) for each agent
-        initialize_initial_values(global_var, data, last_term_list)
+        init_initial_values(global_var, data, last_term_list)
 
         #Distributed averaging consensus on the yp_m(t) vector to find zp_m(t)
         global_var["T_DA"] = global_var["T_CONSENSUS_Z"]
@@ -354,7 +354,7 @@ if __name__ == "__main__":
 
     #Number of data sample for each agent L_DIM_LIST
     #Number of iteration for the update rule T_PM
-    global_var["L_DIM_LIST"] = initialize_L_DIM_LIST(global_var)
+    global_var["L_DIM_LIST"] = generate_L_DIM_LIST(global_var)
     global_var["T_PM"] = 1000
 
     for l_dim in global_var["L_DIM_LIST"]:

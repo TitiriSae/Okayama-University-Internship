@@ -5,22 +5,34 @@ import matplotlib.pyplot as plt
 
 
 
-def generate_instance_PM(global_var, l):
+def generate_data_matrix(global_var, l):
     """
-    Generates randomly an instance of data X and the P normalized initial vectors of dimension N for the problem. The rows of the matrix sums to 1.
+    Generates randomly an instance of data X for the problem. The rows of the matrix sums to 1.
 
     return:
         X: list[list[float]]
-        initial_vectors: list[list[list[float]]]
     """
     N_DIM = global_var["N_DIM"]
-    P_DIM = global_var["P_DIM"]
 
     X = np.random.random((N_DIM, l))
     X -= np.mean(X, axis=1, keepdims=True)
 
     #Verification rows sums to 0
     assert np.allclose(np.sum(X, axis=1), np.zeros(N_DIM), atol=1e-12)
+
+    return X
+
+
+
+def generate_initial_vectors(global_var):
+    """
+    Generates randomly the P normalized initial vectors of dimension N for the problem.
+
+    return:
+        initial_vectors: list[list[list[float]]]
+    """
+    N_DIM = global_var["N_DIM"]
+    P_DIM = global_var["P_DIM"]
 
     def _normalised_vector():
         """
@@ -36,7 +48,7 @@ def generate_instance_PM(global_var, l):
     
 
     initial_vectors = [_normalised_vector() for _ in range(P_DIM)]
-    return X, initial_vectors
+    return initial_vectors
 
 
 
@@ -124,7 +136,7 @@ def update_rule(global_var, X, initial_vectors, l):
         U: list[list[float]]
     """
     P_DIM = global_var["P_DIM"]
-    T_PM = global_var["P_DIM"]
+    T_PM = global_var["T_PM"]
     K1 = global_var["K1"]
     K2 = global_var["K2"]
     EPS = global_var["EPS"]
@@ -272,7 +284,8 @@ if __name__ == "__main__":
 
 
 
-    X, initial_vectors = generate_instance_PM(global_var, global_var["L_DIM"])
+    X = generate_data_matrix(global_var, global_var["L_DIM"])
+    initial_vectors = generate_initial_vectors(global_var)
     S = covariance_matrix(global_var, X, global_var["L_DIM"])
     Lambda, Q = spectral_decomposition(S)
     

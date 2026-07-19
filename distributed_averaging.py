@@ -6,9 +6,9 @@ import networkx as nx
 
 
 
-def generate_instance_DA(global_var):
+def generate_graph(global_var):
     """
-    Generates randomly a symetrical adjacency matrix (with zero diagonal) and the initial values of the nodes.
+    Generates randomly a symetrical adjacency matrix (with zero diagonal).
 
     return: 
         adjacency_matrix: list[list[int]]
@@ -63,7 +63,7 @@ def generate_instance_DA(global_var):
 
 def generate_initial_values(global_var):
     """
-    Generate random values between 0 and VAL_RANGE_DA.
+    Generate random values between 0 and VAL_RANGE_DA for each node.
 
     return:
         initial_values: list[float]
@@ -74,7 +74,7 @@ def generate_initial_values(global_var):
     initial_values = global_var["VAL_RANGE"]*np.random.rand(NB_AGENT)
     return initial_values
 
-def initialize_instance(global_var, adjacency_matrix):
+def init_graph(global_var, adjacency_matrix):
     """
     Return instance's data defined with by the graph and the initial values of each nodes in dict format.
 
@@ -101,7 +101,7 @@ def initialize_instance(global_var, adjacency_matrix):
 
 
 
-def initialize_initial_values(global_var, data, initial_values):
+def init_initial_values(global_var, data, initial_values):
     """
     Add an entry "x" to the dictionary to store the values' history during the averaging consensus.
     data: dict[int, dict[str, Any]] 
@@ -122,7 +122,7 @@ def initialize_initial_values(global_var, data, initial_values):
 
 
 
-def initialize_local_degree_weight(global_var, data):
+def init_local_degree_weight(global_var, data):
     """
     The weight matrix W is defined as :
     Wij = 0 if {i, j} not in E and i != j                                           (sparsity constraint of W)
@@ -334,15 +334,15 @@ if __name__ == "__main__":
     """
 
     #Random generation
-    adj, pos = generate_instance_DA(global_var)
+    adj, pos = generate_graph(global_var)
+    data = init_graph(global_var, adj)
     show_graph(adj, pos)
 
-    data = initialize_instance(global_var, adj)
     x_0 = generate_initial_values(global_var)
-    initialize_initial_values(global_var, data, x_0)
+    init_initial_values(global_var, data, x_0)
 
     #Algorithm 
-    W = initialize_local_degree_weight(global_var, data)
+    W = init_local_degree_weight(global_var, data)
     distributed_linear_iteration(global_var, data, W)
 
     plot(global_var, data)
