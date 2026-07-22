@@ -134,7 +134,7 @@ def compute_Y_t(global_var, data, W, t):
         init_initial_values(global_var, data, up_m_t_list)
 
         #Distributed averaging consensus on the vector up_m(t) to find yp_m(t)
-        global_var["T_DA"] = global_var["T_CONSENSUS_Y"]
+        global_var["T_DA"] = global_var["T_CONS_Y"]
         distributed_linear_iteration(global_var, data, W)
 
         for m in range(1, NB_AGENT+1):
@@ -166,7 +166,7 @@ def compute_Z_t(global_var, data, W, t):
         init_initial_values(global_var, data, last_term_list)
 
         #Distributed averaging consensus on the yp_m(t) vector to find zp_m(t)
-        global_var["T_DA"] = global_var["T_CONSENSUS_Z"]
+        global_var["T_DA"] = global_var["T_CONS_Z"]
         distributed_linear_iteration(global_var, data, W)
 
         for m in range(1, NB_AGENT+1):
@@ -350,9 +350,9 @@ def check_accuracy(global_var, data, precision_list):
         None
     """
     for precision in precision_list:
-        print(f"\nAccuracy to {precision}:")
+        print(f"\n\tAccuracy to {precision}:")
         for m in range(1, global_var["NB_AGENT"]+1):
-            print(f"U_{m}, Q':", np.allclose(np.abs(data["Q"][:global_var["P_DIM"]]), np.abs(data[m]["U"][-1]), atol=precision))
+            print(f"\t\tU_{m}, Q':", np.allclose(np.abs(data["Q"][:global_var["P_DIM"]]), np.abs(data[m]["U"][-1]), atol=precision))
 
 
 if __name__ == "__main__":
@@ -367,8 +367,8 @@ if __name__ == "__main__":
     #Number of iteration for the distributed linear iteration for Y and Z T_CONSENSUS_Y T_CONSENSUS_Z
     global_var["NB_AGENT"] = 10
     global_var["NB_EDGE"] = 30
-    global_var["T_CONSENSUS_Y"] = 1
-    global_var["T_CONSENSUS_Z"] = 20
+    global_var["T_CONS_Y"] = 1
+    global_var["T_CONS_Z"] = 20
 
     #Dimension of a data N_DIM
     #Number of principal component wanted P_DIM
