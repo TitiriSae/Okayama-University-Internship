@@ -56,6 +56,14 @@ def init_decentralized_PCA(global_var):
     #Initialization of the data and initial vectors for the PCA instances for each agent
     X_m_init_vect_list = [(generate_data_matrix(global_var, L_DIM_LIST[m]), generate_initial_vectors(global_var)) for m in range(NB_AGENT)]
 
+    #Adding global data, optimal matrix of eigenvectors, and the weight matrix to the data
+    X = np.hstack([X_m_init_vect_list[m][0] for m in range(NB_AGENT)])
+    Lambda, Q = spectral_decomposition(covariance_matrix(global_var, X, sum(L_DIM_LIST)))
+    data["X"] = X
+    data["Q"] = np.hsplit(Q, Q.shape[1])
+    data["Lambda"] = Lambda
+    data["W"] = W
+
     return adjacency_matrix, pos, data, W, X_m_init_vect_list
 
 
@@ -81,7 +89,6 @@ def decentralized_PCA(global_var, data, W, X_m_init_vect_list):
     """
     NB_AGENT = global_var["NB_AGENT"]
     T_PM = global_var["T_PM"]
-    L_DIM_LIST = global_var["L_DIM_LIST"]
 
     #Updating data dictionary to start iterations
     for m in range(1, NB_AGENT+1):
@@ -107,13 +114,6 @@ def decentralized_PCA(global_var, data, W, X_m_init_vect_list):
         compute_Y_t(global_var, data, W, t)
         compute_Z_t(global_var, data, W, t)
         update_rule_t(global_var, data, t)
-
-    #Adding global data, optimal matrix of eigenvectors, and the weight matrix to the data
-    X = np.hstack([X_m_init_vect_list[m][0] for m in range(NB_AGENT)])
-    _, Q = spectral_decomposition(covariance_matrix(global_var, X, sum(L_DIM_LIST)))
-    data["X"] = X
-    data["Q"] = np.hsplit(Q, Q.shape[1])
-    data["W"] = W
 
 
 

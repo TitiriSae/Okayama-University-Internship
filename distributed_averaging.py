@@ -113,9 +113,6 @@ def init_initial_values(global_var, data, initial_values):
     """
     NB_AGENT = global_var["NB_AGENT"]
 
-    #Verification of lists length
-    assert len(data) == len(initial_values)
-
     for i in range(1, NB_AGENT+1):
         #Storage of a history of the values taken
         data[i]["x"] = [initial_values[i-1]]
