@@ -155,6 +155,7 @@ def distributed_linear_iteration(global_var, data, W):
     """
     NB_AGENT = global_var["NB_AGENT"]
     T_DA = global_var["T_DA"]
+    CONSENSUS_EPS = global_var["CONSENSUS_EPS"]
 
 
     #Convergence conditions verification
@@ -175,11 +176,12 @@ def distributed_linear_iteration(global_var, data, W):
                 x_i_t += W[i-1][j-1]*data[j]["x"][t-1]
             #Store value in the history
             data[i]["x"].append(x_i_t)
-        """
-        if all( [abs(data[j]["x"][t] - data[i]["x"][t-1]) < CONSENSUS_VAL for j in range(1, NB_AGENT+1)] ):
-            set_T_DA(t)
+        
+        if np.all( [np.all( abs(data[i]["x"][t] - data[j]["x"][t]) < CONSENSUS_EPS) for j in range(1, NB_AGENT+1) for i in range(1, NB_AGENT+1)] ):
+            global_var["T_DA"] = t
+            #print(global_var["T_DA"])
             return
-        """
+    #print(global_var["T_DA"])
 
 
 
@@ -274,7 +276,7 @@ def plot(global_var, data, i=None):
         _plot_x_t(data)
     elif i==0:
         for a in range(1, NB_AGENT+1):
-            plot(data, a)
+            plot(global_var, data, a)
         return
     elif 1<= i <= NB_AGENT:
         _plot_x_i_t(data, i)
@@ -302,11 +304,62 @@ if __name__ == "__main__":
     #Number of nodes NB_AGENT
     #Number of edges NB_EDGE
     #Number of iteration T_DA
-    global_var["NB_AGENT"] = 50
+    global_var["NB_AGENT"] = 8
     global_var["NB_EDGE"] = 200
-    global_var["T_DA"] = 50
 
-    global_var["CONSENSUS_VAL"] = 1e-10
+    global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 7
+    star_g = np.array([
+        [0, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [1, 0, 0, 0, 0, 0, 0, 0],
+    ]) 
+
+    #global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 7
+    path_g = np.array([
+        [0, 1, 0, 0, 0, 0, 0, 0],
+        [1, 0, 1, 0, 0, 0, 0, 0],
+        [0, 1, 0, 1, 0, 0, 0, 0],
+        [0, 0, 1, 0, 1, 0, 0, 0],
+        [0, 0, 0, 1, 0, 1, 0, 0],
+        [0, 0, 0, 0, 1, 0, 1, 0],
+        [0, 0, 0, 0, 0, 1, 0, 1],
+        [0, 0, 0, 0, 0, 0, 1, 0],
+    ])
+
+    #global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 8
+    circle_g = np.array([
+        [0, 1, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 0, 0, 0, 0, 0],
+        [0, 1, 0, 1, 0, 0, 0, 0],
+        [0, 0, 1, 0, 1, 0, 0, 0],
+        [0, 0, 0, 1, 0, 1, 0, 0],
+        [0, 0, 0, 0, 1, 0, 1, 0],
+        [0, 0, 0, 0, 0, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 1, 0],
+    ])
+
+    #global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 16
+    regular_g = np.array([
+        [0, 1, 1, 0, 0, 0, 1, 1],
+        [1, 0, 1, 1, 0, 0, 0, 1],
+        [1, 1, 0, 1, 1, 0, 0, 0],
+        [0, 1, 1, 0, 1, 1, 0, 0],
+        [0, 0, 1, 1, 0, 1, 1, 0],
+        [0, 0, 0, 1, 1, 0, 1, 1],
+        [1, 0, 0, 0, 1, 1, 0, 1],
+        [1, 1, 0, 0, 0, 1, 1, 0],
+    ])
+
+
+
+    global_var["T_DA"] = 1000
+
+    global_var["CONSENSUS_EPS"] = 1e-10
 
 
 
@@ -333,6 +386,7 @@ if __name__ == "__main__":
 
     #Random generation
     adj, pos = generate_graph(global_var)
+    adj, pos = regular_g, None
     data = init_graph(global_var, adj)
     show_graph(adj, pos)
 
@@ -343,4 +397,4 @@ if __name__ == "__main__":
     W = init_local_degree_weight(global_var, data)
     distributed_linear_iteration(global_var, data, W)
 
-    plot(global_var, data)
+    plot(global_var, data, 0)

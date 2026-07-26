@@ -8,27 +8,29 @@ import matplotlib.pyplot as plt
 
 
 
-def generate_L_DIM_LIST(nb_agent, n_dim, *, l_max=None, l_dim_list=None):
+def generate_L_DIM_LIST(global_var, *, l_max=None, l_dim_list=None):
     """
     Generate L_DIM_LIST.
 
     return:
         l_dim_list: list[int]
     """
+    NB_AGENT = global_var["NB_AGENT"]
+    N_DIM = global_var["N_DIM"]
 
     if l_dim_list != None:
         return l_dim_list
     
     if l_max == None:
-        l_max = n_dim*2
-    assert l_max > n_dim
+        l_max = N_DIM*2
+    assert l_max > N_DIM
 
-    l_dim_list = [np.random.randint(n_dim+1, l_max+1) for _ in range(nb_agent)]
+    l_dim_list = [np.random.randint(N_DIM+1, l_max+1) for _ in range(NB_AGENT)]
     return l_dim_list
 
 
 
-def init_decentralized_PCA(global_var):
+def init_decentralized_PCA(global_var, adjacency_matrix=None):
     """
     Initialize an instance of the decentralized algorithm for PCA.
 
@@ -45,7 +47,9 @@ def init_decentralized_PCA(global_var):
     L_DIM_LIST = global_var["L_DIM_LIST"]
 
     #Initialization of the agent network
-    adjacency_matrix, pos = generate_graph(global_var)
+    pos = None
+    if adjacency_matrix is None:
+        adjacency_matrix, pos = generate_graph(global_var)
 
     #Updating the data dictionary to add information on the neighbours, degree for each agent
     data = init_graph(global_var, adjacency_matrix)
@@ -89,6 +93,7 @@ def decentralized_PCA(global_var, data, W, X_m_init_vect_list):
     """
     NB_AGENT = global_var["NB_AGENT"]
     T_PM = global_var["T_PM"]
+    CONVERGENCE_EPS = global_var["CONVERGENCE_EPS"]
 
     #Updating data dictionary to start iterations
     for m in range(1, NB_AGENT+1):
@@ -115,6 +120,10 @@ def decentralized_PCA(global_var, data, W, X_m_init_vect_list):
         compute_Z_t(global_var, data, W, t)
         update_rule_t(global_var, data, t)
 
+        if np.all( [ np.all(abs(np.array(data[i]["U"][t]) - np.array(data[i]["U"][t-1])) < CONVERGENCE_EPS) for i in range(1, NB_AGENT+1)] ):
+            global_var["T_PM"] = t
+            return
+
 
 
 def compute_Y_t(global_var, data, W, t):
@@ -134,8 +143,10 @@ def compute_Y_t(global_var, data, W, t):
         init_initial_values(global_var, data, up_m_t_list)
 
         #Distributed averaging consensus on the vector up_m(t) to find yp_m(t)
-        global_var["T_DA"] = global_var["T_CONS_Y"]
+        global_var["T_DA"] = global_var["T_Y"]
+        #print("T_Y", global_var["T_DA"])
         distributed_linear_iteration(global_var, data, W)
+        data["TY"].append(global_var["T_DA"])
 
         for m in range(1, NB_AGENT+1):
 
@@ -166,8 +177,10 @@ def compute_Z_t(global_var, data, W, t):
         init_initial_values(global_var, data, last_term_list)
 
         #Distributed averaging consensus on the yp_m(t) vector to find zp_m(t)
-        global_var["T_DA"] = global_var["T_CONS_Z"]
+        global_var["T_DA"] = global_var["T_Z"]
+        #print("T_Z", global_var["T_DA"])
         distributed_linear_iteration(global_var, data, W)
+        data["TZ"].append(global_var["T_DA"])
 
         for m in range(1, NB_AGENT+1):
 
@@ -364,11 +377,64 @@ if __name__ == "__main__":
 
     #Number of agents NB_AGENT
     #Number of edges NB_EDGE
-    #Number of iteration for the distributed linear iteration for Y and Z T_CONSENSUS_Y T_CONSENSUS_Z
+    #Number of iteration for the distributed linear iteration for Y and Z T_Y T_Z
     global_var["NB_AGENT"] = 10
     global_var["NB_EDGE"] = 30
-    global_var["T_CONS_Y"] = 1
-    global_var["T_CONS_Z"] = 20
+
+
+
+    global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 7
+    star_g = np.array([
+        [0, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [1, 0, 0, 0, 0, 0, 0, 0],
+    ]) 
+
+    #global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 7
+    path_g = np.array([
+        [0, 1, 0, 0, 0, 0, 0, 0],
+        [1, 0, 1, 0, 0, 0, 0, 0],
+        [0, 1, 0, 1, 0, 0, 0, 0],
+        [0, 0, 1, 0, 1, 0, 0, 0],
+        [0, 0, 0, 1, 0, 1, 0, 0],
+        [0, 0, 0, 0, 1, 0, 1, 0],
+        [0, 0, 0, 0, 0, 1, 0, 1],
+        [0, 0, 0, 0, 0, 0, 1, 0],
+    ])
+
+    #global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 8
+    circle_g = np.array([
+        [0, 1, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 0, 0, 0, 0, 0],
+        [0, 1, 0, 1, 0, 0, 0, 0],
+        [0, 0, 1, 0, 1, 0, 0, 0],
+        [0, 0, 0, 1, 0, 1, 0, 0],
+        [0, 0, 0, 0, 1, 0, 1, 0],
+        [0, 0, 0, 0, 0, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 1, 0],
+    ])
+
+    #global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 16
+    regular_g = np.array([
+        [0, 1, 1, 0, 0, 0, 1, 1],
+        [1, 0, 1, 1, 0, 0, 0, 1],
+        [1, 1, 0, 1, 1, 0, 0, 0],
+        [0, 1, 1, 0, 1, 1, 0, 0],
+        [0, 0, 1, 1, 0, 1, 1, 0],
+        [0, 0, 0, 1, 1, 0, 1, 1],
+        [1, 0, 0, 0, 1, 1, 0, 1],
+        [1, 1, 0, 0, 0, 1, 1, 0],
+    ])
+
+
+
+    global_var["T_Y"] = 1000
+    global_var["T_Z"] = 1000
 
     #Dimension of a data N_DIM
     #Number of principal component wanted P_DIM
@@ -377,7 +443,7 @@ if __name__ == "__main__":
 
     #Number of data sample for each agent L_DIM_LIST
     #Number of iteration for the update rule T_PM
-    global_var["L_DIM_LIST"] = generate_L_DIM_LIST(global_var["NB_AGENT"], global_var["N_DIM"])
+    global_var["L_DIM_LIST"] = generate_L_DIM_LIST(global_var)
     global_var["T_PM"] = 1000
 
     #Parameter of the update rule K1
@@ -387,11 +453,11 @@ if __name__ == "__main__":
     global_var["K2"] = 0.4
     global_var["EPS"] = 0.1
 
+    global_var["CONSENSUS_EPS"] = 1e-8
 
-
-    adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var)
+    adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, path_g)
     show_graph(adjacency_matrix, pos)
     decentralized_PCA(global_var, data, W, X_m_init_vect_list)
-    
-    check_accuracy(global_var, data, [10**-i for i in range(1, 6)])    
+
+    check_accuracy(global_var, data, [10**-i for i in range(1, 6)])
     plot(global_var, data)

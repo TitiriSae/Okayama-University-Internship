@@ -1,1 +1,9 @@
 Aled
+
+G = nx.from_numpy_array(regular_g)
+D = nx.diameter(G)
+K = np.min([data[i]['d'] for i in data if type(i)==int])
+K = 1/(1-abs(sorted(np.linalg.eigvals(W), reverse=True)[1]))
+C=1.5
+EPS_C = 1e-10
+C*(D/K)*np.log(1/EPS_C)
