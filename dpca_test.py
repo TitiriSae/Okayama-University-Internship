@@ -28,18 +28,18 @@ def check_parameter_effect(global_var, data, W, X_m_init_vect_list):
         global_var[parameter] = val[i]
         decentralized_PCA(global_var, data_copy, W, X_m_init_vect_list)
 
-        print(f"\n\n{parameter} = {global_var[parameter]}")
-        check_accuracy(global_var, data_copy, [10**-i for i in range(1, check_acc+1)])
-        plot(global_var, data_copy, None, None, show=False, label=f"{parameter} = {global_var[parameter]}", color=cmap(color[i]))
+        #print(f"\n\n{parameter} = {global_var[parameter]}")
+        #check_accuracy(global_var, data_copy, [10**-i for i in range(1, check_acc+1)])
+        #plot(global_var, data_copy, None, None, show=False, label=f"{parameter} = {global_var[parameter]}", color=cmap(color[i]))
         save.append(data_copy)
 
-    plt.title(label=f"Evolution of the distance between U = (u1 ... uP) and Q' = (q1 ... qP)")
-    plt.xlabel(xlabel="t")
-    plt.ylabel(ylabel=f"Distance between U and Q")
+    #plt.title(label=f"Evolution of the distance between U = (u1 ... uP) and Q' = (q1 ... qP)")
+    #plt.xlabel(xlabel="t")
+    #plt.ylabel(ylabel=f"Distance between U and Q")
 
-    plt.ylim(0)
-    plt.legend(fontsize='small', bbox_to_anchor=(1.05, 1), ncol=len(val)//20+1)
-    plt.show()
+    #plt.ylim(0)
+    #plt.legend(fontsize='small', bbox_to_anchor=(1.05, 1), ncol=len(val)//20+1)
+    #plt.show()
 
     return save
 
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     global_var["P_DIM"] = 3
     global_var["L_DIM_LIST"] = generate_L_DIM_LIST(global_var)
     
-    global_var["T_PM"] = 5000
+    global_var["T_PM"] = 10000
     global_var["T_Y"] = 1000
     global_var["T_Z"] = 1000
 
@@ -144,16 +144,23 @@ if __name__ == "__main__":
     global_var["EPS"] = 0.1
 
     global_var["CONSENSUS_EPS"] = 1e-8
-    global_var["CONVERGENCE_EPS"] = 1e-9
+    global_var["CONVERGENCE_EPS"] = 1e-10
 
     adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, regular_g)
     show_graph(adjacency_matrix, pos)
 
-    global_var["parameter"] = "T_Y"
-    global_var["val"] = range(0, 3, 1)
+    global_var["parameter"] = "CONVERGENCE_EPS"
+    global_var["val"] = [10**-i for i in range(1, 13)]
     global_var["check_acc"] = 15
 
     data["TY"], data["TZ"] = [], []
     
     save = check_parameter_effect(global_var, data, W, X_m_init_vect_list)
     #for i in range(11):replot(global_var, save, 10**-i)
+
+    for i in range(len(global_var["val"])):
+        print(f"CONVERGENCE_EPS = {10**-(i+1)}")
+        check_accuracy(global_var, save[i], [10**-i for i in range(1, 15+1)])
+
+    for i in range(len(global_var["val"])):
+        print(global_var["val"][i], np.mean(save[i]["TY"]), np.mean(save[i]["TZ"]), len(save[i][1]["U"])-1)

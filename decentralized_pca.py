@@ -120,10 +120,15 @@ def decentralized_PCA(global_var, data, W, X_m_init_vect_list):
         compute_Z_t(global_var, data, W, t)
         update_rule_t(global_var, data, t)
 
-        if np.all( [ np.all(abs(np.array(data[i]["U"][t]) - np.array(data[i]["U"][t-1])) < CONVERGENCE_EPS) for i in range(1, NB_AGENT+1)] ):
-            global_var["T_PM"] = t
+        if np.all( 
+            [np.all(np.abs(np.array(data[i]["U"][t]) - np.array(data[i]["U"][t-1])) < CONVERGENCE_EPS) 
+            for i in range(1, NB_AGENT+1)]
+            ):
+            #global_var["T_PM"] = t
+            print(f"\n{global_var["parameter"]} = {global_var[global_var["parameter"]]}, Arrêt convergence à T_PM={t}")
             return
-
+        
+    print(f"\n{global_var["parameter"]} = {global_var[global_var["parameter"]]}, Arrêt convergence normal à T_PM={t}")
 
 
 def compute_Y_t(global_var, data, W, t):
@@ -444,7 +449,7 @@ if __name__ == "__main__":
     #Number of data sample for each agent L_DIM_LIST
     #Number of iteration for the update rule T_PM
     global_var["L_DIM_LIST"] = generate_L_DIM_LIST(global_var)
-    global_var["T_PM"] = 1000
+    global_var["T_PM"] = 10
 
     #Parameter of the update rule K1
     #Parameter of the update rule K2
@@ -454,9 +459,15 @@ if __name__ == "__main__":
     global_var["EPS"] = 0.1
 
     global_var["CONSENSUS_EPS"] = 1e-8
+    global_var["CONVERGENCE_EPS"] = 1e-10
+
+
 
     adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, path_g)
     show_graph(adjacency_matrix, pos)
+
+    data["TY"], data["TZ"] = [], []
+
     decentralized_PCA(global_var, data, W, X_m_init_vect_list)
 
     check_accuracy(global_var, data, [10**-i for i in range(1, 6)])
