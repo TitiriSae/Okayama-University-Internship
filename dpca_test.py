@@ -3,6 +3,7 @@ from decentralized_pca import spectral_decomposition, covariance_matrix
 
 import numpy as np
 import matplotlib.pyplot as plt
+import networkx as nx
 from copy import deepcopy
 
 
@@ -28,18 +29,18 @@ def check_parameter_effect(global_var, data, W, X_m_init_vect_list):
         global_var[parameter] = val[i]
         decentralized_PCA(global_var, data_copy, W, X_m_init_vect_list)
 
-        #print(f"\n\n{parameter} = {global_var[parameter]}")
-        #check_accuracy(global_var, data_copy, [10**-i for i in range(1, check_acc+1)])
-        #plot(global_var, data_copy, None, None, show=False, label=f"{parameter} = {global_var[parameter]}", color=cmap(color[i]))
+        print(f"\n\n{parameter} = {global_var[parameter]}")
+        check_accuracy(global_var, data_copy, [10**-i for i in range(1, check_acc+1)])
+        plot(global_var, data_copy, None, None, show=False, label=f"{parameter} = {global_var[parameter]}", color=cmap(color[i]))
         save.append(data_copy)
 
-    #plt.title(label=f"Evolution of the distance between U = (u1 ... uP) and Q' = (q1 ... qP)")
-    #plt.xlabel(xlabel="t")
-    #plt.ylabel(ylabel=f"Distance between U and Q")
+    plt.title(label=f"Evolution of the distance between U = (u1 ... uP) and Q' = (q1 ... qP)")
+    plt.xlabel(xlabel="t")
+    plt.ylabel(ylabel=f"Distance between U and Q")
 
-    #plt.ylim(0)
-    #plt.legend(fontsize='small', bbox_to_anchor=(1.05, 1), ncol=len(val)//20+1)
-    #plt.show()
+    plt.ylim(0)
+    plt.legend(fontsize='small', bbox_to_anchor=(1.05, 1), ncol=len(val)//20+1)
+    plt.show()
 
     return save
 
@@ -105,7 +106,7 @@ if __name__ == "__main__":
         [0, 0, 0, 0, 0, 0, 1, 0],
     ])
 
-    global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 8
+    #global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 8
     circle_g = np.array([
         [0, 1, 0, 0, 0, 0, 0, 1],
         [1, 0, 1, 0, 0, 0, 0, 0],
@@ -146,7 +147,12 @@ if __name__ == "__main__":
     global_var["CONSENSUS_EPS"] = 1e-8
     global_var["CONVERGENCE_EPS"] = 1e-10
 
-    adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, regular_g)
+
+    global_var["NB_AGENT"], global_var["NB_EDGE"] = 7, 7
+    G = nx.cycle_graph(global_var["NB_AGENT"])
+    adjacency_matrix = nx.to_numpy_array(G, dtype=int)
+
+    adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, adjacency_matrix)
     show_graph(adjacency_matrix, pos)
 
     global_var["parameter"] = "CONVERGENCE_EPS"
@@ -159,7 +165,7 @@ if __name__ == "__main__":
     #for i in range(11):replot(global_var, save, 10**-i)
 
     for i in range(len(global_var["val"])):
-        print(f"CONVERGENCE_EPS = {10**-(i+1)}")
+        print(f"{global_var["parameter"]} = {global_var["val"][i]}")
         check_accuracy(global_var, save[i], [10**-i for i in range(1, 15+1)])
 
     for i in range(len(global_var["val"])):
