@@ -31,6 +31,7 @@ def check_parameter_effect(global_var, data, W, X_m_init_vect_list):
 
         print(f"\n\n{parameter} = {global_var[parameter]}")
         check_accuracy(global_var, data_copy, [10**-i for i in range(1, check_acc+1)])
+        print(np.mean(data_copy["TY"]), np.mean(data_copy["TZ"]), len(data_copy[1]["U"])-1)
         plot(global_var, data_copy, None, None, show=False, label=f"{parameter} = {global_var[parameter]}", color=cmap(color[i]))
         save.append(data_copy)
 
@@ -75,7 +76,7 @@ if __name__ == "__main__":
     global_var = dict()
 
     global_var["SEED"] = 15
-    np.random.seed(global_var["SEED"])
+    #np.random.seed(global_var["SEED"])
 
 
 
@@ -118,7 +119,7 @@ if __name__ == "__main__":
         [1, 0, 0, 0, 0, 0, 1, 0],
     ])
 
-    #global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 16
+    global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 16
     regular_g = np.array([
         [0, 1, 1, 0, 0, 0, 1, 1],
         [1, 0, 1, 1, 0, 0, 0, 1],
@@ -148,11 +149,11 @@ if __name__ == "__main__":
     global_var["CONVERGENCE_EPS"] = 1e-10
 
 
-    global_var["NB_AGENT"], global_var["NB_EDGE"] = 7, 7
-    G = nx.cycle_graph(global_var["NB_AGENT"])
-    adjacency_matrix = nx.to_numpy_array(G, dtype=int)
+    #global_var["NB_AGENT"], global_var["NB_EDGE"] = 7, 7
+    #G = nx.cycle_graph(global_var["NB_AGENT"])
+    #adjacency_matrix = nx.to_numpy_array(G, dtype=int)
 
-    adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, adjacency_matrix)
+    adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, regular_g)
     show_graph(adjacency_matrix, pos)
 
     global_var["parameter"] = "CONVERGENCE_EPS"
@@ -163,10 +164,6 @@ if __name__ == "__main__":
     
     save = check_parameter_effect(global_var, data, W, X_m_init_vect_list)
     #for i in range(11):replot(global_var, save, 10**-i)
-
-    for i in range(len(global_var["val"])):
-        print(f"{global_var["parameter"]} = {global_var["val"][i]}")
-        check_accuracy(global_var, save[i], [10**-i for i in range(1, 15+1)])
 
     for i in range(len(global_var["val"])):
         print(global_var["val"][i], np.mean(save[i]["TY"]), np.mean(save[i]["TZ"]), len(save[i][1]["U"])-1)

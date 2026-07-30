@@ -156,7 +156,7 @@ def distributed_linear_iteration(global_var, data, W):
     NB_AGENT = global_var["NB_AGENT"]
     T_DA = global_var["T_DA"]
     CONSENSUS_EPS = global_var["CONSENSUS_EPS"]
-    consensus_val = get_consensus_val(data)
+    CONSENSUS_VAL = get_consensus_val(data)
 
 
     #Convergence conditions verification
@@ -178,7 +178,7 @@ def distributed_linear_iteration(global_var, data, W):
             #Store value in the history
             data[i]["x"].append(x_i_t)
 
-        if np.all( [np.all( abs(data[i]["x"][t] - consensus_val) < CONSENSUS_EPS) for i in range(1, NB_AGENT+1)] ):
+        if np.all( [np.all( abs(data[i]["x"][t] - CONSENSUS_VAL) < CONSENSUS_EPS) for i in range(1, NB_AGENT+1)] ):
             global_var["T_DA"] = t
             #print(f"Consensus stop T={global_var["T_DA"]}")
             return
