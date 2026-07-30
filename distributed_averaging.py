@@ -162,11 +162,11 @@ def distributed_linear_iteration(global_var, data, W):
     #Convergence conditions verification
     assert np.allclose(np.sum(W, axis=0), np.ones(NB_AGENT), atol=1e-12)
     assert np.allclose(np.sum(W, axis=1), np.ones(NB_AGENT), atol=1e-12)
-    #assert  np.max(np.abs(
-    #            np.linalg.eigvals(
-    #                W - (1/NB_AGENT)*np.ones((NB_AGENT, NB_AGENT))
-    #            )
-    #        )) < 1
+    assert  np.max(np.abs(
+                np.linalg.eigvals(
+                    W - (1/NB_AGENT)*np.ones((NB_AGENT, NB_AGENT))
+                )
+            )) < 1
 
     for t in range(1, T_DA+1):
 
@@ -178,12 +178,11 @@ def distributed_linear_iteration(global_var, data, W):
             #Store value in the history
             data[i]["x"].append(x_i_t)
 
-        #if np.all( [np.all( abs(data[i]["x"][t] - data[j]["x"][t]) < CONSENSUS_EPS) for j in range(1, NB_AGENT+1) for i in range(1, NB_AGENT+1)] ):
         if np.all( [np.all( abs(data[i]["x"][t] - consensus_val) < CONSENSUS_EPS) for i in range(1, NB_AGENT+1)] ):
             global_var["T_DA"] = t
-            #print(f"Arrêt consensus T={global_var["T_DA"]}")
+            #print(f"Consensus stop T={global_var["T_DA"]}")
             return
-    #print(f"Arrêt consensus normal T={global_var["T_DA"]}")
+    #print(f"Normal consensus stop at T={global_var["T_DA"]}")
 
 
 
@@ -309,7 +308,7 @@ if __name__ == "__main__":
     global_var["NB_AGENT"] = 8
     global_var["NB_EDGE"] = 200
 
-    global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 7
+    #global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 7
     star_g = np.array([
         [0, 1, 1, 1, 1, 1, 1, 1],
         [1, 0, 0, 0, 0, 0, 0, 0],
@@ -345,7 +344,7 @@ if __name__ == "__main__":
         [1, 0, 0, 0, 0, 0, 1, 0],
     ])
 
-    global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 16
+    #global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 16
     regular_g = np.array([
         [0, 1, 1, 0, 0, 0, 1, 1],
         [1, 0, 1, 1, 0, 0, 0, 1],
@@ -391,28 +390,26 @@ if __name__ == "__main__":
 
     for k in range(3, 20, 2):
         global_var["T_DA"] = 10000
+
         global_var["NB_AGENT"], global_var["NB_EDGE"] = k, k
         G = nx.cycle_graph(global_var["NB_AGENT"])
-        adjacency_matrix = nx.to_numpy_array(G, dtype=int)
-        
-        adj, pos = adjacency_matrix, None
-        data = init_graph(global_var, adj)
+        adjacency_matrix, pos = nx.to_numpy_array(G, dtype=int), None
+
+        data = init_graph(global_var, adjacency_matrix)
         show_graph(adj, pos)
 
         x_0 = generate_initial_values(global_var)
-        x1 = np.array([40.41959443, 88.7676214 , 83.12931876, 67.75649106, 63.93032967,
-        83.29647307, 51.16512286, 25.22223189, 90.99125793, 43.37392022,
-        11.6410754 , 33.38692134])
         init_initial_values(global_var, data, x_0)
-        NB_AGENT = global_var["NB_AGENT"]
-        #Algorithm 
+
         W = init_local_degree_weight(global_var, data)
 
-        for i in sorted(abs(np.linalg.eigvals(W - (1/NB_AGENT)*np.ones((NB_AGENT, NB_AGENT)))), reverse=True):
+        for i in sorted(abs(np.linalg.eigvals(W - (1/global_var["NB_AGENT"])*np.ones((global_var["NB_AGENT"], global_var["NB_AGENT"])))), reverse=True):
             print(i)
         print()
         for i in sorted(abs(np.linalg.eigvals(W)), reverse=True):
             print(i)
+
+        #Algorithm 
         distributed_linear_iteration(global_var, data, W)
 
         plot(global_var, data)

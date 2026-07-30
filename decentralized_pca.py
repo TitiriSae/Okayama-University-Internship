@@ -124,11 +124,10 @@ def decentralized_PCA(global_var, data, W, X_m_init_vect_list):
             [np.all(np.abs(np.array(data[i]["U"][t]) - np.array(data[i]["U"][t-1])) < CONVERGENCE_EPS) 
             for i in range(1, NB_AGENT+1)]
             ):
-            #global_var["T_PM"] = t
-            print(f"\n{global_var["parameter"]} = {global_var[global_var["parameter"]]}, Arrêt convergence à T_PM={t}")
+            #print(f"\n{global_var["parameter"]} = {global_var[global_var["parameter"]]}, Convergence stop at T_PM={t}")
             return
         
-    print(f"\n{global_var["parameter"]} = {global_var[global_var["parameter"]]}, Arrêt convergence normal à T_PM={t}")
+    #print(f"\n{global_var["parameter"]} = {global_var[global_var["parameter"]]}, Normal convergence stop at T_PM={t}")
 
 
 def compute_Y_t(global_var, data, W, t):
@@ -388,7 +387,7 @@ if __name__ == "__main__":
 
 
 
-    global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 7
+    #global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 7
     star_g = np.array([
         [0, 1, 1, 1, 1, 1, 1, 1],
         [1, 0, 0, 0, 0, 0, 0, 0],
@@ -463,7 +462,7 @@ if __name__ == "__main__":
 
 
 
-    adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, path_g)
+    adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var)
     show_graph(adjacency_matrix, pos)
 
     data["TY"], data["TZ"] = [], []
