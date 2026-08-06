@@ -1,4 +1,4 @@
-from distributed_averaging import generate_graph, init_graph, init_initial_values, init_local_degree_weight, distributed_linear_iteration, show_graph
+from distributed_averaging import generate_graph, init_graph, init_initial_values, init_local_degree_weight_cao, distributed_linear_iteration, show_graph
 from power_method import generate_data_matrix, generate_initial_vectors, covariance_matrix, spectral_decomposition
 
 import numpy as np
@@ -55,7 +55,7 @@ def init_decentralized_PCA(global_var, adjacency_matrix=None):
     data = init_graph(global_var, adjacency_matrix)
 
     #Initialization of the weights matrix
-    W = init_local_degree_weight(global_var, data)
+    W = init_local_degree_weight_cao(global_var, data)
 
     #Initialization of the data and initial vectors for the PCA instances for each agent
     X_m_init_vect_list = [(generate_data_matrix(global_var, L_DIM_LIST[m]), generate_initial_vectors(global_var)) for m in range(NB_AGENT)]
@@ -67,6 +67,9 @@ def init_decentralized_PCA(global_var, adjacency_matrix=None):
     data["Q"] = np.hsplit(Q, Q.shape[1])
     data["Lambda"] = Lambda
     data["W"] = W
+
+    data["TY"] = []
+    data["TZ"] = []
 
     return adjacency_matrix, pos, data, W, X_m_init_vect_list
 
@@ -89,11 +92,26 @@ def decentralized_PCA(global_var, data, W, X_m_init_vect_list):
          -> ('W') weight matrix: list[list[float]]
 
     return:
-        None
+        int 
     """
     NB_AGENT = global_var["NB_AGENT"]
+    P_DIM = global_var["P_DIM"]
     T_PM = global_var["T_PM"]
     CONVERGENCE_EPS = global_var["CONVERGENCE_EPS"]
+
+
+    def _get_norm_unsigned_up_m_t_qp(data, p, m, t):
+        """
+        Get the distance between up_m(t) and qp, accurate to the sign.
+        """
+        return abs( abs((data["Q"][p-1].T @ data[m]["U"][t][p-1]).item()) -1)
+
+    def _get_norm_unsigned_U_m_t_QP(data, m, t):
+        """
+        Get the distance between U_m(t) and Q', accurate to the sign.
+        """
+        return sum([_get_norm_unsigned_up_m_t_qp(data, p, m, t) for p in range(1, P_DIM+1)])
+
 
     #Updating data dictionary to start iterations
     for m in range(1, NB_AGENT+1):
@@ -120,14 +138,15 @@ def decentralized_PCA(global_var, data, W, X_m_init_vect_list):
         compute_Z_t(global_var, data, W, t)
         update_rule_t(global_var, data, t)
 
-        if np.all( 
-            [np.all(np.abs(np.array(data[i]["U"][t]) - np.array(data[i]["U"][t-1])) < CONVERGENCE_EPS) 
-            for i in range(1, NB_AGENT+1)]
-            ):
+        #Stopping condition
+
+        #if np.all([np.all(np.abs(np.array(data[i]["U"][t]) - np.array(data[i]["U"][t-1])) < CONVERGENCE_EPS) for i in range(1, NB_AGENT+1)]):
+        if np.all([_get_norm_unsigned_U_m_t_QP(data, m, t) < CONVERGENCE_EPS for m in range(1, NB_AGENT+1)]):
             #print(f"\n{global_var["parameter"]} = {global_var[global_var["parameter"]]}, Convergence stop at T_PM={t}")
-            return
+            return t+1
         
     #print(f"\n{global_var["parameter"]} = {global_var[global_var["parameter"]]}, Normal convergence stop at T_PM={t}")
+    return 0
 
 
 def compute_Y_t(global_var, data, W, t):
@@ -148,9 +167,8 @@ def compute_Y_t(global_var, data, W, t):
 
         #Distributed averaging consensus on the vector up_m(t) to find yp_m(t)
         global_var["T_DA"] = global_var["T_Y"]
-        #print("T_Y", global_var["T_DA"])
-        distributed_linear_iteration(global_var, data, W)
-        data["TY"].append(global_var["T_DA"])
+        ty = distributed_linear_iteration(global_var, data, W)
+        data["TY"].append(ty if ty else global_var["T_DA"])
 
         for m in range(1, NB_AGENT+1):
 
@@ -182,9 +200,8 @@ def compute_Z_t(global_var, data, W, t):
 
         #Distributed averaging consensus on the yp_m(t) vector to find zp_m(t)
         global_var["T_DA"] = global_var["T_Z"]
-        #print("T_Z", global_var["T_DA"])
-        distributed_linear_iteration(global_var, data, W)
-        data["TZ"].append(global_var["T_DA"])
+        tz = distributed_linear_iteration(global_var, data, W)
+        data["TZ"].append(tz if tz else global_var["T_DA"])
 
         for m in range(1, NB_AGENT+1):
 
@@ -464,8 +481,6 @@ if __name__ == "__main__":
 
     adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var)
     show_graph(adjacency_matrix, pos)
-
-    data["TY"], data["TZ"] = [], []
 
     decentralized_PCA(global_var, data, W, X_m_init_vect_list)
 
