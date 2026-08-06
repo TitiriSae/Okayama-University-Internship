@@ -146,12 +146,39 @@ def init_local_degree_weight(global_var, data):
 
 
 
+def init_local_degree_weight_cao(global_var, data):
+    """
+    The weight matrix W is defined as :
+    Wij = 0 if {i, j} not in E and i != j                                           (sparsity constraint of W)
+    Wij = 1/(1+max{deg_i, deg_j})                                                   (local degree weight)
+    Wii is chosen such that the matrix sums to 1 across rows and columns.           (theorem 1)
+
+    return:
+        W: list[list[float]]
+    """
+    NB_AGENT = global_var["NB_AGENT"]
+
+    #Ignoring Wii for now
+    W = [
+        [0 if (j not in data[i]["n"] and j!=i) or j==i else 1/(1+max(data[i]["d"], data[j]["d"])) for j in range(1, NB_AGENT+1)] 
+        for i in range(1, NB_AGENT+1)
+        ]
+    
+    #Set Wii
+    for i in range(NB_AGENT):
+        #W is symmetrical
+        W[i][i] = 1 - np.sum(W[i])
+
+    return W
+
+
+
 def distributed_linear_iteration(global_var, data, W):
     """
     Apply the distributed linear iterations for t iterations on the "x" entry of the data.
 
     return: 
-        None
+        int
     """
     NB_AGENT = global_var["NB_AGENT"]
     T_DA = global_var["T_DA"]
@@ -179,10 +206,11 @@ def distributed_linear_iteration(global_var, data, W):
             data[i]["x"].append(x_i_t)
 
         if np.all( [np.all( abs(data[i]["x"][t] - CONSENSUS_VAL) < CONSENSUS_EPS) for i in range(1, NB_AGENT+1)] ):
-            global_var["T_DA"] = t
-            #print(f"Consensus stop T={global_var["T_DA"]}")
-            return
-    #print(f"Normal consensus stop at T={global_var["T_DA"]}")
+            #print(f"Consensus stop T={t}")
+            return t
+        
+    #print(f"Normal consensus stop at T={t}")
+    return 0
 
 
 
@@ -306,7 +334,7 @@ if __name__ == "__main__":
     #Number of edges NB_EDGE
     #Number of iteration T_DA
     global_var["NB_AGENT"] = 8
-    global_var["NB_EDGE"] = 200
+    global_var["NB_EDGE"] = 20
 
     #global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 7
     star_g = np.array([
@@ -386,9 +414,9 @@ if __name__ == "__main__":
     """
 
     #Random generation
-    adj, pos = generate_graph(global_var)
+    #adjacency_matrix, pos = generate_graph(global_var)
 
-    for k in range(3, 20, 2):
+    for k in range(1, 30, 1):
         global_var["T_DA"] = 10000
 
         global_var["NB_AGENT"], global_var["NB_EDGE"] = k, k
@@ -396,18 +424,14 @@ if __name__ == "__main__":
         adjacency_matrix, pos = nx.to_numpy_array(G, dtype=int), None
 
         data = init_graph(global_var, adjacency_matrix)
-        show_graph(adj, pos)
+        show_graph(adjacency_matrix)
 
         x_0 = generate_initial_values(global_var)
         init_initial_values(global_var, data, x_0)
 
-        W = init_local_degree_weight(global_var, data)
+        W = init_local_degree_weight_cao(global_var, data)
 
-        for i in sorted(abs(np.linalg.eigvals(W - (1/global_var["NB_AGENT"])*np.ones((global_var["NB_AGENT"], global_var["NB_AGENT"])))), reverse=True):
-            print(i)
-        print()
-        for i in sorted(abs(np.linalg.eigvals(W)), reverse=True):
-            print(i)
+        print(sorted(abs(np.linalg.eigvals(W - (1/global_var["NB_AGENT"])*np.ones((global_var["NB_AGENT"], global_var["NB_AGENT"])))), reverse=True)[0])
 
         #Algorithm 
         distributed_linear_iteration(global_var, data, W)
