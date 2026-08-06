@@ -154,12 +154,6 @@ def update_rule(global_var, X, initial_vectors, l):
 
             ui_t1 /= np.linalg.norm(ui_t1)
             data[i].append(ui_t1)
-        
-        """
-        if all( [np.linalg.norm(data[j][t+1] - data[j][t]) < CONVERGENCE_VAL for j in range(1, P_DIM+1)] ):
-            set_T_PM(t+1)
-            break
-        """
     
     U = get_U_t(global_var, data, T_PM)
     return data, U
