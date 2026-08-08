@@ -92,7 +92,7 @@ def convergence_table(axTY, axTZ, T):
     T_total = np.array([[tpm*(1+ty_bar+tz_bar) for tpm,ty_bar,tz_bar in row] for row in T])
 
     table = ax.table(
-        cellText=[[f"{tpm*(1+ty_bar+tz_bar):.3f}\n{tpm} | {ty_bar:.1f} |  {tz_bar:.1f}" for tpm,ty_bar,tz_bar in row] for row in T],
+        cellText=[[f"{tpm*(1+ty_bar+tz_bar):.3f}\n{tpm}|{ty_bar:.1f}|{tz_bar:.1f}" for tpm,ty_bar,tz_bar in row] for row in T],
         rowLabels=[str(y) for y in axTY],
         colLabels=[str(z) for z in axTZ],
         loc="center",
@@ -243,7 +243,7 @@ if __name__ == "__main__":
     #star
     #Y,Z=list(range(0, 35)),list(range(85, 120))
     #path
-    Y,Z=list(range(0, 30)), list(range(0, 30))
+    Y,Z=list(range(46, 61)), list(range(195, 220))
 
     adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, path_g)
     show_graph(adjacency_matrix, pos)
