@@ -234,7 +234,7 @@ if __name__ == "__main__":
         [0, 0, 0, 0, 0, 0, 1, 0],
     ])
 
-    global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 8
+    #global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 8
     circle_g = np.array([
         [0, 1, 0, 0, 0, 0, 0, 1],
         [1, 0, 1, 0, 0, 0, 0, 0],
@@ -247,11 +247,23 @@ if __name__ == "__main__":
     ])
 
 
+
+    complete_g = nx.to_numpy_array(nx.convert_node_labels_to_integers(nx.complete_graph(16), first_label=1), dtype=int)
+    global_var["NB_AGENT"], global_var["NB_EDGE"] = len(complete_g), int(np.sum(complete_g)/2)
+
+    grid_g = nx.to_numpy_array(nx.convert_node_labels_to_integers(nx.grid_2d_graph(4, 4), first_label=1), dtype=int)
+    #global_var["NB_AGENT"], global_var["NB_EDGE"] = len(grid_g), int(np.sum(grid_g)/2)
+
+    binarytree_g = nx.to_numpy_array(nx.convert_node_labels_to_integers(nx.balanced_tree(2, 4), first_label=1), dtype=int)
+    #global_var["NB_AGENT"], global_var["NB_EDGE"] = len(binarytree_g), int(np.sum(binarytree_g)/2)
+
+
+
     global_var["N_DIM"] = 5
     global_var["P_DIM"] = 3
     global_var["L_DIM_LIST"] = generate_L_DIM_LIST(global_var)
     
-    global_var["T_PM"] = 10000
+    global_var["T_PM"] = 100000
     global_var["T_Y"] = 1000
     global_var["T_Z"] = 1000
 
@@ -260,7 +272,7 @@ if __name__ == "__main__":
     global_var["EPS"] = 0.1
 
     global_var["CONSENSUS_EPS"] = 1e-8
-    global_var["CONVERGENCE_EPS"] = 1e-8
+    global_var["CONVERGENCE_EPS"] = 1e-10
 
     #regular
     #Y,Z=list(range(0, 30)), list(range(0, 30))
@@ -278,9 +290,19 @@ if __name__ == "__main__":
     #circle
     #Y,Z=list(range(10, 26)), list(range(49, 86))
     #Y,Z=list(range(10, 26)), list(range(43, 56))
-    Y,Z=list(range(10, 26)), list(range(39, 51))
+    #Y,Z=list(range(10, 26)), list(range(39, 51))
 
-    adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, circle_g)
+    #complete
+    Y,Z=list(range(0, 30)), list(range(0, 30))
+
+    #grid
+
+
+    #binarytree
+
+
+
+    adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, complete_g)
     show_graph(adjacency_matrix, pos)
 
     T = get_convergence_values(global_var, data, W, X_m_init_vect_list, Y, Z)
