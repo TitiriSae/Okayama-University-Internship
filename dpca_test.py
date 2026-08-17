@@ -10,7 +10,7 @@ from matplotlib import cm
 from matplotlib.colors import Normalize
 
 
-def check_parameter_effect(global_var, data, W, X_m_init_vect_list):
+def check_parameter_effect(global_var, data, W, X_m_init_vect_list, check_acc=None):
     """
     Plot the total distance between U and Q' while changing the value of a parameter.
 
@@ -19,7 +19,6 @@ def check_parameter_effect(global_var, data, W, X_m_init_vect_list):
     """
     parameter = global_var["parameter"]
     val = global_var["val"]
-    check_acc = global_var["check_acc"]
 
     cmap = plt.get_cmap('plasma')
     save = []
@@ -32,7 +31,8 @@ def check_parameter_effect(global_var, data, W, X_m_init_vect_list):
         decentralized_PCA(global_var, data_copy, W, X_m_init_vect_list)
 
         print(f"\n\n{parameter} = {global_var[parameter]}")
-        check_accuracy(global_var, data_copy, [10**-i for i in range(1, check_acc+1)])
+        if check_acc is not None:
+            check_accuracy(global_var, data_copy, [10**-i for i in range(1, check_acc+1)])
         print(np.mean(data_copy["TY"]), np.mean(data_copy["TZ"]), len(data_copy[1]["U"])-1)
         plot(global_var, data_copy, None, None, show=False, label=f"{parameter} = {global_var[parameter]}", color=cmap(color[i]))
         save.append(data_copy)
@@ -198,7 +198,7 @@ if __name__ == "__main__":
     global_var["SEED"] = 15
     np.random.seed(global_var["SEED"])
 
-    #global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 16
+    global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 16
     regular_g = np.array([
         [0, 1, 1, 0, 0, 0, 1, 1],
         [1, 0, 1, 1, 0, 0, 0, 1],
@@ -249,7 +249,7 @@ if __name__ == "__main__":
 
 
     complete_g = nx.to_numpy_array(nx.convert_node_labels_to_integers(nx.complete_graph(16), first_label=1), dtype=int)
-    global_var["NB_AGENT"], global_var["NB_EDGE"] = len(complete_g), int(np.sum(complete_g)/2)
+    #global_var["NB_AGENT"], global_var["NB_EDGE"] = len(complete_g), int(np.sum(complete_g)/2)
 
     grid_g = nx.to_numpy_array(nx.convert_node_labels_to_integers(nx.grid_2d_graph(4, 4), first_label=1), dtype=int)
     #global_var["NB_AGENT"], global_var["NB_EDGE"] = len(grid_g), int(np.sum(grid_g)/2)
@@ -263,7 +263,7 @@ if __name__ == "__main__":
     global_var["P_DIM"] = 3
     global_var["L_DIM_LIST"] = generate_L_DIM_LIST(global_var)
     
-    global_var["T_PM"] = 100000
+    global_var["T_PM"] = 10000
     global_var["T_Y"] = 1000
     global_var["T_Z"] = 1000
 
@@ -275,7 +275,7 @@ if __name__ == "__main__":
     global_var["CONVERGENCE_EPS"] = 1e-10
 
     #regular
-    #Y,Z=list(range(0, 30)), list(range(0, 30))
+    Y,Z=list(range(0, 30)), list(range(0, 30))
 
     #star
     #Y,Z=list(range(0, 35)),list(range(85, 120))
@@ -293,7 +293,7 @@ if __name__ == "__main__":
     #Y,Z=list(range(10, 26)), list(range(39, 51))
 
     #complete
-    Y,Z=list(range(0, 30)), list(range(0, 30))
+    #Y,Z=list(range(0, 3)), list(range(0, 3))
 
     #grid
 
@@ -302,7 +302,7 @@ if __name__ == "__main__":
 
 
 
-    adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, complete_g)
+    adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, regular_g)
     show_graph(adjacency_matrix, pos)
 
     T = get_convergence_values(global_var, data, W, X_m_init_vect_list, Y, Z)
@@ -389,16 +389,25 @@ if __name__ == "__main__0":
         [1, 1, 0, 0, 0, 1, 1, 0],
     ])
 
+    complete_g = nx.to_numpy_array(nx.convert_node_labels_to_integers(nx.complete_graph(16), first_label=1), dtype=int)
+    global_var["NB_AGENT"], global_var["NB_EDGE"] = len(complete_g), int(np.sum(complete_g)/2)
+
+    grid_g = nx.to_numpy_array(nx.convert_node_labels_to_integers(nx.grid_2d_graph(4, 4), first_label=1), dtype=int)
+    #global_var["NB_AGENT"], global_var["NB_EDGE"] = len(grid_g), int(np.sum(grid_g)/2)
+
+    binarytree_g = nx.to_numpy_array(nx.convert_node_labels_to_integers(nx.balanced_tree(2, 4), first_label=1), dtype=int)
+    #global_var["NB_AGENT"], global_var["NB_EDGE"] = len(binarytree_g), int(np.sum(binarytree_g)/2)
+
 
 
     global_var["N_DIM"] = 5
     global_var["P_DIM"] = 3
     global_var["L_DIM_LIST"] = generate_L_DIM_LIST(global_var)
     
-    global_var["T_PM"] = 10000
+    global_var["T_PM"] = 15000
     global_var["T_Y"] = 1000
     global_var["T_Z"] = 1000
-
+    
     global_var["K1"] = 0.2
     global_var["K2"] = 0.4
     global_var["EPS"] = 0.1
@@ -406,15 +415,15 @@ if __name__ == "__main__0":
     global_var["CONSENSUS_EPS"] = 1e-8
     global_var["CONVERGENCE_EPS"] = 1e-10
 
-    adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, circle_g)
+    adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, complete_g)
     show_graph(adjacency_matrix, pos)
 
-    global_var["parameter"] = "CONVERGENCE_EPS"
-    global_var["val"] = [10**-i for i in range(13, 16)]
-    global_var["check_acc"] = 15
+    global_var["parameter"] = "EPS"
+    #global_var["val"] = [10**-i for i in range(13, 16)]
+    global_var["val"] = [0.1, 0.05, 0.01, 0.005, 0.001]
     
     save = check_parameter_effect(global_var, data, W, X_m_init_vect_list)
-    #for i in range(11):replot(global_var, save, 10**-i)
+    for i in range(11):replot(global_var, save, 10**-i)
 
     for i in range(len(global_var["val"])):
         print(global_var["val"][i], np.mean(save[i]["TY"]), np.mean(save[i]["TZ"]), len(save[i][1]["U"])-1)

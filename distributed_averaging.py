@@ -187,14 +187,14 @@ def distributed_linear_iteration(global_var, data, W):
 
 
     #Convergence conditions verification
-    assert np.allclose(np.sum(W, axis=0), np.ones(NB_AGENT), atol=1e-12)
-    assert np.allclose(np.sum(W, axis=1), np.ones(NB_AGENT), atol=1e-12)
+    assert np.allclose(np.sum(W, axis=0), np.ones(NB_AGENT), atol=1e-12), f"{np.sum(W, axis=0)} != {np.ones(NB_AGENT)}"
+    assert np.allclose(np.sum(W, axis=1), np.ones(NB_AGENT), atol=1e-12), f"{np.sum(W, axis=1)} != {np.ones(NB_AGENT)}"
     assert  np.max(np.abs(
                 np.linalg.eigvals(
                     W - (1/NB_AGENT)*np.ones((NB_AGENT, NB_AGENT))
                 )
-            )) < 1
-
+            )) < 1, f"{np.max(np.abs(np.linalg.eigvals(W - (1/NB_AGENT)*np.ones((NB_AGENT, NB_AGENT)))))}"
+    
     for t in range(1, T_DA+1):
 
         for i in range(1, NB_AGENT+1):
@@ -326,7 +326,7 @@ if __name__ == "__main__":
     global_var = dict()
 
     global_var["SEED"] = 15
-    #np.random.seed(global_var["SEED"])
+    np.random.seed(global_var["SEED"])
 
     global_var["VAL_RANGE"] = 100
 
@@ -384,6 +384,8 @@ if __name__ == "__main__":
         [1, 1, 0, 0, 0, 1, 1, 0],
     ])
 
+    complete_g = nx.to_numpy_array(nx.convert_node_labels_to_integers(nx.complete_graph(16), first_label=1), dtype=int)
+    global_var["NB_AGENT"], global_var["NB_EDGE"] = len(complete_g), int(np.sum(complete_g)/2)
 
 
     global_var["T_DA"] = 10000
@@ -415,7 +417,7 @@ if __name__ == "__main__":
 
     #Random generation
     #adjacency_matrix, pos = generate_graph(global_var)
-
+    """
     for k in range(1, 30, 1):
         global_var["T_DA"] = 10000
 
@@ -437,3 +439,21 @@ if __name__ == "__main__":
         distributed_linear_iteration(global_var, data, W)
 
         plot(global_var, data)
+    """
+    
+    adjacency_matrix, pos = complete_g, None
+
+    data = init_graph(global_var, adjacency_matrix)
+    show_graph(adjacency_matrix)
+
+    x_0 = generate_initial_values(global_var)
+    init_initial_values(global_var, data, x_0)
+
+    W = init_local_degree_weight_cao(global_var, data)
+
+    print(sorted(abs(np.linalg.eigvals(W - (1/global_var["NB_AGENT"])*np.ones((global_var["NB_AGENT"], global_var["NB_AGENT"])))), reverse=True))
+
+    #Algorithm 
+    distributed_linear_iteration(global_var, data, W)
+
+    plot(global_var, data)
