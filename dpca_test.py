@@ -287,7 +287,7 @@ if __name__ == "__main__":
     global_var["CONVERGENCE_EPS"] = 1e-10
 
     #regular
-    #Y,Z=list(range(0, 21)), list(range(10, 30))
+    Y,Z=list(range(0, 21)), list(range(10, 30))
 
     #star
     #Y,Z=list(range(3, 26)),list(range(85, 120))
@@ -347,7 +347,7 @@ if __name__ == "__main__":
     print()
     #print(np.array(T.tolist()).tolist())
 
-    convergence_table(Y, Z, T_circle10)
+    convergence_table(Y, Z, T_regular10)
 
 
 
