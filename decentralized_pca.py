@@ -30,7 +30,7 @@ def generate_L_DIM_LIST(global_var, *, l_max=None, l_dim_list=None):
 
 
 
-def init_decentralized_PCA(global_var, adjacency_matrix=None):
+def init_decentralized_PCA(global_var, adjacency_matrix=None, pos=None):
     """
     Initialize an instance of the decentralized algorithm for PCA.
 
@@ -47,7 +47,6 @@ def init_decentralized_PCA(global_var, adjacency_matrix=None):
     L_DIM_LIST = global_var["L_DIM_LIST"]
 
     #Initialization of the agent network
-    pos = None
     if adjacency_matrix is None:
         adjacency_matrix, pos = generate_graph(global_var)
 
