@@ -238,7 +238,7 @@ def search_opt_t_path(global_var, y, z, step, data, W, X_m_init_vect_list):
             visited[(side_y, side_z)] = tpm, int(tpm*(1+ty_bar+tz_bar))
             print(f"\t{(side_y, side_z)} => {visited[(side_y, side_z)]}")
 
-    min_y, min_z = min(visited, key=lambda k: visited[k][1])
+    min_y, min_z = min((k for k in visited if visited[k][1] != 0), key=lambda k: visited[k][1])
     while (curr_y, curr_z) != (min_y, min_z):
 
         curr_y, curr_z = min_y, min_z
@@ -251,7 +251,7 @@ def search_opt_t_path(global_var, y, z, step, data, W, X_m_init_vect_list):
                 visited[(side_y, side_z)] = tpm, int(tpm*(1+ty_bar+tz_bar))
                 print(f"\t{(side_y, side_z)} => {visited[(side_y, side_z)]}")
 
-        min_y, min_z = min(visited, key=lambda k: visited[k][1])
+        min_y, min_z = min((k for k in visited if visited[k][1] != 0), key=lambda k: visited[k][1])
 
     return curr_y, curr_z
 
@@ -597,15 +597,18 @@ if __name__ == "__main__":
     i=0
     adjacency_matrix, pos = graph_list[i]
     adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, adjacency_matrix, pos)
+    show_graph(adjacency_matrix, pos)
+    print(f"{ac_list[i]}\n\n")
 
-    opt_y, opt_z = search_opt_t_path(global_var, 30, 110, 10, data, W, X_m_init_vect_list)
+    opt_y, opt_z = search_opt_t_path(global_var, 40, 120, 10, data, W, X_m_init_vect_list)
+    print("\nNew step\n")
     opt_y, opt_z = search_opt_t_path(global_var, opt_y, opt_z, 3, data, W, X_m_init_vect_list)
+    print("\nNew step\n")
     opt_y, opt_z = search_opt_t_path(global_var, opt_y, opt_z, 1, data, W, X_m_init_vect_list)
 
     Y = list(range(opt_y-2, opt_y+3))
     Z = list(range(opt_z-2, opt_z+3))
     T = get_convergence_values(global_var, data, W, X_m_init_vect_list, Y, Z)
     convergence_table(Y, Z, T)
-    (35, 134)
     
 
