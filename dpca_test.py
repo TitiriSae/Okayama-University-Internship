@@ -228,17 +228,17 @@ def search_opt_t_path(global_var, y, z, data, W, X_m_init_vect_list):
     curr_y, curr_z = y, z
 
     tpm, ty_bar, tz_bar = get_convergence_values(global_var, data, W, X_m_init_vect_list, [curr_y], [curr_z], False)[0,0]
-    visited[(curr_y, curr_z)] = tpm*(1+ty_bar+tz_bar)
+    visited[(curr_y, curr_z)] = tpm, tpm*(1+ty_bar+tz_bar)
     print(f"{(curr_y, curr_z)} => {visited[(curr_y, curr_z)]}")
 
     sides = [(curr_y-1, curr_z), (curr_y+1, curr_z), (curr_y, curr_z-1), (curr_y, curr_z+1)]
     for side_y, side_z in sides:
         if (side_y, side_z) not in visited:
-            tpm, ty_bar, tz_bar = get_convergence_values(global_var, data, W, X_m_init_vect_list, [side_y], [side_z], False)[0,0][0]
-            visited[(side_y, side_z)] = tpm*(1+ty_bar+tz_bar)
+            tpm, ty_bar, tz_bar = get_convergence_values(global_var, data, W, X_m_init_vect_list, [side_y], [side_z], False)[0,0]
+            visited[(side_y, side_z)] = tpm, tpm*(1+ty_bar+tz_bar)
             print(f"\t{(side_y, side_z)} => {visited[(side_y, side_z)]}")
 
-    min_y, min_z = min(visited, key=visited.get)
+    min_y, min_z = min(visited, key=lambda k: visited[k][1])
     while (curr_y, curr_z) != (min_y, min_z):
 
         curr_y, curr_z = min_y, min_z
@@ -247,12 +247,12 @@ def search_opt_t_path(global_var, y, z, data, W, X_m_init_vect_list):
         sides = [(curr_y-1, curr_z), (curr_y+1, curr_z), (curr_y, curr_z-1), (curr_y, curr_z+1)]
         for side_y, side_z in sides:
             if (side_y, side_z) not in visited:
-                tpm, ty_bar, tz_bar = get_convergence_values(global_var, data, W, X_m_init_vect_list, [side_y], [side_z], False)[0,0][0]
-                visited[(side_y, side_z)] = tpm*(1+ty_bar+tz_bar)
+                tpm, ty_bar, tz_bar = get_convergence_values(global_var, data, W, X_m_init_vect_list, [side_y], [side_z], False)[0,0]
+                visited[(side_y, side_z)] = tpm, tpm*(1+ty_bar+tz_bar)
                 print(f"\t{(side_y, side_z)} => {visited[(side_y, side_z)]}")
 
-        min_y, min_z = min(visited, key=visited.get)
-    
+        min_y, min_z = min(visited, key=lambda k: visited[k][1])
+
     return curr_y, curr_z
 
 
