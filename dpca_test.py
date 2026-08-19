@@ -202,12 +202,11 @@ def get_convergence_values(global_var, data, W, X_m_init_vect_list, axTY, axTZ):
 
 
 
-def search_opt_t(global_var, i, addY, addZ, m_list, graph_list, ac_list, fy, fz):
+def search_opt_t_chunk(global_var, i, addY, addZ, m_list, graph_list, ac_list, data, W, X_m_init_vect_list, fy, fz):
     global_var["NB_EDGE"] = m_list[i]
     adjacency_matrix, pos = graph_list[i]
     ac = ac_list[i]
 
-    adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, adjacency_matrix, pos)
     show_graph(adjacency_matrix, pos)
 
     #print(fy(ac), fz(ac))
@@ -219,6 +218,37 @@ def search_opt_t(global_var, i, addY, addZ, m_list, graph_list, ac_list, fy, fz)
     print(f"\n\n{np.array(T.tolist()).tolist()}")
 
     convergence_table(Y, Z, T)
+
+
+
+def search_opt_t_path(global_var, y, z, data, W, X_m_init_vect_list):
+
+    curr_y, curr_z = y, z
+
+    visited = dict()
+    visited[(curr_y, curr_z)] = get_convergence_values(global_var, data, W, X_m_init_vect_list, [curr_y], [curr_z])[0,0][0]
+    print(f"{(curr_y, curr_z)} => {visited[(curr_y, curr_z)]}")
+
+    sides = [(curr_y-1, curr_z), (curr_y+1, curr_z), (curr_y, curr_z-1), (curr_y, curr_z+1)]
+    for side_y, side_z in sides:
+        if (side_y, side_z) not in visited:
+            visited[(side_y, side_z)] = get_convergence_values(global_var, data, W, X_m_init_vect_list, [side_y], [side_z])[0,0][0]
+            print(f"\t{(curr_y, curr_z)} => {visited[(curr_y, curr_z)]}")
+
+    min_y, min_z = min(visited, key=visited.get)
+    while (curr_y, curr_z) != (min_y, min_z):
+
+        curr_y, curr_z = min_y, min_z
+        print(f"\n{(curr_y, curr_z)} => {visited[(curr_y, curr_z)]}")
+
+        sides = [(curr_y-1, curr_z), (curr_y+1, curr_z), (curr_y, curr_z-1), (curr_y, curr_z+1)]
+        for side_y, side_z in sides:
+            if (side_y, side_z) not in visited:
+                visited[(side_y, side_z)] = get_convergence_values(global_var, data, W, X_m_init_vect_list, [side_y], [side_z])[0,0][0]
+                print(f"\t{(curr_y, curr_z)} => {visited[(curr_y, curr_z)]}")
+                
+
+    return curr_y, curr_z
 
 
 
@@ -481,7 +511,7 @@ if __name__ == "__main__2":
 if __name__ == "__main__":
 
     global_var = dict()
-    global_var["SEED"] = 15
+    global_var["SEED"] = 22
     np.random.seed(global_var["SEED"])
 
 
@@ -525,9 +555,47 @@ if __name__ == "__main__":
     def fz(ac):
         return int(42.05*(ac**-0.703))
 
+
+    """
+    for k in range(10, 15):
+        addY = k
+        addZ = k
+
+        global_var["NB_EDGE"] = m_list[i]
+        adjacency_matrix, pos = graph_list[i]
+        ac = ac_list[i]
+
+        adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, adjacency_matrix, pos)
+
+        Y = [fy(ac)-2+5*addY]
+        Z = [fz(ac)-2+5*addZ]
+        print(Y, Z)
+        T = get_convergence_values(global_var, data, W, X_m_init_vect_list, Y, Z)
+
+        if T[0,0][0] != 0:
+            search_opt_t_chunk(global_var, i, addY, addZ, m_list, graph_list, ac_list, data, W, X_m_init_vect_list, fy, fz)
+
+
+
+    print("Aucun résultat")
+    """
+    
+    """
     i=0
-    addY = 0
-    addZ = 0
+    addY = 3
+    addZ = 5
+    adjacency_matrix, pos = graph_list[i]
+    adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, adjacency_matrix, pos)
+    search_opt_t_chunk(global_var, i, addY, addZ, m_list, graph_list, ac_list, data, W, X_m_init_vect_list, fy, fz)
+    """
 
-    search_opt_t(global_var, i, addY, addZ, m_list, graph_list, ac_list, fy, fz)
+    i=0
+    adjacency_matrix, pos = graph_list[i]
+    adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, adjacency_matrix, pos)
+    
+    opt_y, opt_z = search_opt_t_path(global_var, 46, 134, data, W, X_m_init_vect_list)
 
+    Y = list(range(opt_y-2, opt_y+3))
+    Z = list(range(opt_z-2, opt_z+3))
+    T = get_convergence_values(global_var, data, W, X_m_init_vect_list, Y, Z)
+    convergence_table(Y, Z, T)
