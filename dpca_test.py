@@ -171,7 +171,7 @@ def convergence_table(axTY, axTZ, T):
 
 
 
-def get_convergence_values(global_var, data, W, X_m_init_vect_list, axTY, axTZ):
+def get_convergence_values(global_var, data, W, X_m_init_vect_list, axTY, axTZ, verb=True):
     """
     Display a table of the number of iterations needed depending on the variables T_Y and T_Z.
 
@@ -192,10 +192,12 @@ def get_convergence_values(global_var, data, W, X_m_init_vect_list, axTY, axTZ):
             ty_bar, tz_bar = (np.mean(data_copy["TY"]), np.mean(data_copy["TZ"]))
             T[i_y, i_z] = [tpm, ty_bar, tz_bar]
 
-            print(f"T_Y={global_var["T_Y"]}: {ty_bar}")
-            print(f"T_Z={global_var["T_Z"]}: {tz_bar}")
-            print(f"T_PM={global_var["T_PM"]}: {T[i_y, i_z][0] if T[i_y, i_z][0] else global_var["T_PM"]}")
-            print()
+            if verb:
+                print(f"T_Y={global_var["T_Y"]}: {ty_bar}")
+                print(f"T_Z={global_var["T_Z"]}: {tz_bar}")
+                print(f"T_PM={global_var["T_PM"]}: {T[i_y, i_z][0] if T[i_y, i_z][0] else global_var["T_PM"]}")
+                print()
+
             del data_copy
 
     return T
@@ -226,14 +228,14 @@ def search_opt_t_path(global_var, y, z, data, W, X_m_init_vect_list):
     curr_y, curr_z = y, z
 
     visited = dict()
-    visited[(curr_y, curr_z)] = get_convergence_values(global_var, data, W, X_m_init_vect_list, [curr_y], [curr_z])[0,0][0]
+    visited[(curr_y, curr_z)] = get_convergence_values(global_var, data, W, X_m_init_vect_list, [curr_y], [curr_z], False)[0,0][0]
     print(f"{(curr_y, curr_z)} => {visited[(curr_y, curr_z)]}")
 
     sides = [(curr_y-1, curr_z), (curr_y+1, curr_z), (curr_y, curr_z-1), (curr_y, curr_z+1)]
     for side_y, side_z in sides:
         if (side_y, side_z) not in visited:
-            visited[(side_y, side_z)] = get_convergence_values(global_var, data, W, X_m_init_vect_list, [side_y], [side_z])[0,0][0]
-            print(f"\t{(curr_y, curr_z)} => {visited[(curr_y, curr_z)]}")
+            visited[(side_y, side_z)] = get_convergence_values(global_var, data, W, X_m_init_vect_list, [side_y], [side_z], False)[0,0][0]
+            print(f"\t{(side_y, side_z)} => {visited[(side_y, side_z)]}")
 
     min_y, min_z = min(visited, key=visited.get)
     while (curr_y, curr_z) != (min_y, min_z):
@@ -244,8 +246,8 @@ def search_opt_t_path(global_var, y, z, data, W, X_m_init_vect_list):
         sides = [(curr_y-1, curr_z), (curr_y+1, curr_z), (curr_y, curr_z-1), (curr_y, curr_z+1)]
         for side_y, side_z in sides:
             if (side_y, side_z) not in visited:
-                visited[(side_y, side_z)] = get_convergence_values(global_var, data, W, X_m_init_vect_list, [side_y], [side_z])[0,0][0]
-                print(f"\t{(curr_y, curr_z)} => {visited[(curr_y, curr_z)]}")
+                visited[(side_y, side_z)] = get_convergence_values(global_var, data, W, X_m_init_vect_list, [side_y], [side_z], False)[0,0][0]
+                print(f"\t{(side_y, side_z)} => {visited[(side_y, side_z)]}")
                 
 
     return curr_y, curr_z
@@ -592,7 +594,7 @@ if __name__ == "__main__":
     i=0
     adjacency_matrix, pos = graph_list[i]
     adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, adjacency_matrix, pos)
-    
+
     opt_y, opt_z = search_opt_t_path(global_var, 46, 134, data, W, X_m_init_vect_list)
 
     Y = list(range(opt_y-2, opt_y+3))
