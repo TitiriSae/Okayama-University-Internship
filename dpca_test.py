@@ -223,7 +223,7 @@ def search_opt_t_chunk(global_var, i, addY, addZ, m_list, graph_list, ac_list, d
 
 
 
-def search_opt_t_path(global_var, y, z, data, W, X_m_init_vect_list):
+def search_opt_t_path(global_var, y, z, step, data, W, X_m_init_vect_list):
     visited = dict()
     curr_y, curr_z = y, z
 
@@ -231,7 +231,7 @@ def search_opt_t_path(global_var, y, z, data, W, X_m_init_vect_list):
     visited[(curr_y, curr_z)] = tpm, int(tpm*(1+ty_bar+tz_bar))
     print(f"{(curr_y, curr_z)} => {visited[(curr_y, curr_z)]}")
 
-    sides = [(curr_y-1, curr_z), (curr_y+1, curr_z), (curr_y, curr_z-1), (curr_y, curr_z+1)]
+    sides = [(curr_y-step, curr_z), (curr_y+step, curr_z), (curr_y, curr_z-step), (curr_y, curr_z+step)]
     for side_y, side_z in sides:
         if (side_y, side_z) not in visited:
             tpm, ty_bar, tz_bar = get_convergence_values(global_var, data, W, X_m_init_vect_list, [side_y], [side_z], False)[0,0]
@@ -244,7 +244,7 @@ def search_opt_t_path(global_var, y, z, data, W, X_m_init_vect_list):
         curr_y, curr_z = min_y, min_z
         print(f"\n{(curr_y, curr_z)} => {visited[(curr_y, curr_z)]}")
 
-        sides = [(curr_y-1, curr_z), (curr_y+1, curr_z), (curr_y, curr_z-1), (curr_y, curr_z+1)]
+        sides = [(curr_y-step, curr_z), (curr_y+step, curr_z), (curr_y, curr_z-step), (curr_y, curr_z+step)]
         for side_y, side_z in sides:
             if (side_y, side_z) not in visited:
                 tpm, ty_bar, tz_bar = get_convergence_values(global_var, data, W, X_m_init_vect_list, [side_y], [side_z], False)[0,0]
@@ -593,14 +593,19 @@ if __name__ == "__main__":
     adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, adjacency_matrix, pos)
     search_opt_t_chunk(global_var, i, addY, addZ, m_list, graph_list, ac_list, data, W, X_m_init_vect_list, fy, fz)
     """
-
+    
     i=0
     adjacency_matrix, pos = graph_list[i]
     adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, adjacency_matrix, pos)
 
-    opt_y, opt_z = search_opt_t_path(global_var, 46, 134, data, W, X_m_init_vect_list)
+    opt_y, opt_z = search_opt_t_path(global_var, 30, 110, 10, data, W, X_m_init_vect_list)
+    opt_y, opt_z = search_opt_t_path(global_var, opt_y, opt_z, 3, data, W, X_m_init_vect_list)
+    opt_y, opt_z = search_opt_t_path(global_var, opt_y, opt_z, 1, data, W, X_m_init_vect_list)
 
     Y = list(range(opt_y-2, opt_y+3))
     Z = list(range(opt_z-2, opt_z+3))
     T = get_convergence_values(global_var, data, W, X_m_init_vect_list, Y, Z)
     convergence_table(Y, Z, T)
+    (35, 134)
+    
+
