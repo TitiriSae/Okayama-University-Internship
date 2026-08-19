@@ -224,17 +224,18 @@ def search_opt_t_chunk(global_var, i, addY, addZ, m_list, graph_list, ac_list, d
 
 
 def search_opt_t_path(global_var, y, z, data, W, X_m_init_vect_list):
-
+    visited = dict()
     curr_y, curr_z = y, z
 
-    visited = dict()
-    visited[(curr_y, curr_z)] = get_convergence_values(global_var, data, W, X_m_init_vect_list, [curr_y], [curr_z], False)[0,0][0]
+    tpm, ty_bar, tz_bar = get_convergence_values(global_var, data, W, X_m_init_vect_list, [curr_y], [curr_z], False)[0,0]
+    visited[(curr_y, curr_z)] = tpm*(1+ty_bar+tz_bar)
     print(f"{(curr_y, curr_z)} => {visited[(curr_y, curr_z)]}")
 
     sides = [(curr_y-1, curr_z), (curr_y+1, curr_z), (curr_y, curr_z-1), (curr_y, curr_z+1)]
     for side_y, side_z in sides:
         if (side_y, side_z) not in visited:
-            visited[(side_y, side_z)] = get_convergence_values(global_var, data, W, X_m_init_vect_list, [side_y], [side_z], False)[0,0][0]
+            tpm, ty_bar, tz_bar = get_convergence_values(global_var, data, W, X_m_init_vect_list, [side_y], [side_z], False)[0,0][0]
+            visited[(side_y, side_z)] = tpm*(1+ty_bar+tz_bar)
             print(f"\t{(side_y, side_z)} => {visited[(side_y, side_z)]}")
 
     min_y, min_z = min(visited, key=visited.get)
@@ -246,10 +247,12 @@ def search_opt_t_path(global_var, y, z, data, W, X_m_init_vect_list):
         sides = [(curr_y-1, curr_z), (curr_y+1, curr_z), (curr_y, curr_z-1), (curr_y, curr_z+1)]
         for side_y, side_z in sides:
             if (side_y, side_z) not in visited:
-                visited[(side_y, side_z)] = get_convergence_values(global_var, data, W, X_m_init_vect_list, [side_y], [side_z], False)[0,0][0]
+                tpm, ty_bar, tz_bar = get_convergence_values(global_var, data, W, X_m_init_vect_list, [side_y], [side_z], False)[0,0][0]
+                visited[(side_y, side_z)] = tpm*(1+ty_bar+tz_bar)
                 print(f"\t{(side_y, side_z)} => {visited[(side_y, side_z)]}")
-                
 
+        min_y, min_z = min(visited, key=visited.get)
+    
     return curr_y, curr_z
 
 
