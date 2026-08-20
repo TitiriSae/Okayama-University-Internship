@@ -74,7 +74,7 @@ def replot(global_var, save, ylim=None):
 
 
 
-def convergence_table(axTY, axTZ, T):
+def convergence_table(axTY, axTZ, T, add_title=None):
     """
     Display a table of the number of iterations needed depending on the variables T_Y and T_Z.
 
@@ -92,9 +92,10 @@ def convergence_table(axTY, axTZ, T):
     )
     
     fig.suptitle(
-        f"Number of iterations needed (Total, T_PM, avg(T_Y), avg(T_Z)) | CONVERGENCE_EPS=???, ???_graph",
+        f"Number of iterations needed (Total, T_PM, avg(T_Y), avg(T_Z)){" | "+add_title if add_title is not None else ""}",
         fontsize=12,
         fontweight="bold",
+        x=0.5,
         y=0.93
     )
 
@@ -200,43 +201,34 @@ def get_convergence_values(global_var, data, W, X_m_init_vect_list, axTY, axTZ, 
 
             del data_copy
 
+    if verb:
+        print(np.array(T.tolist()).tolist())
     return T
 
 
 
-def search_opt_t_chunk(global_var, i, addY, addZ, m_list, graph_list, ac_list, data, W, X_m_init_vect_list, fy, fz):
-    global_var["NB_EDGE"] = m_list[i]
-    adjacency_matrix, pos = graph_list[i]
-    ac = ac_list[i]
+def search_opt_t_path(global_var, y, z, step, data, W, X_m_init_vect_list, visited=None):
 
-    show_graph(adjacency_matrix, pos)
-
-    #print(fy(ac), fz(ac))
-    Y = list(range(fy(ac)-2+5*addY, fy(ac)+2+1+5*addY))
-    Z = list(range(fz(ac)-2+5*addZ, fz(ac)+2+1+5*addZ))
-    #Y,Z = [fy(ac)], [fz(ac)]
-    T = get_convergence_values(global_var, data, W, X_m_init_vect_list, Y, Z)
-
-    print(f"\n\n{np.array(T.tolist()).tolist()}")
-
-    convergence_table(Y, Z, T)
-
-
-
-def search_opt_t_path(global_var, y, z, step, data, W, X_m_init_vect_list):
-    visited = dict()
     curr_y, curr_z = y, z
 
-    tpm, ty_bar, tz_bar = get_convergence_values(global_var, data, W, X_m_init_vect_list, [curr_y], [curr_z], False)[0,0]
-    visited[(curr_y, curr_z)] = tpm, int(tpm*(1+ty_bar+tz_bar))
+    if visited is None:
+        visited = dict()
+
+        tpm, ty_bar, tz_bar = get_convergence_values(global_var, data, W, X_m_init_vect_list, [curr_y], [curr_z], False)[0,0]
+        visited[(curr_y, curr_z)] = (tpm if tpm else global_var["T_PM"]), int(tpm*(1+ty_bar+tz_bar))
+
     print(f"{(curr_y, curr_z)} => {visited[(curr_y, curr_z)]}")
 
-    sides = [(curr_y-step, curr_z), (curr_y+step, curr_z), (curr_y, curr_z-step), (curr_y, curr_z+step)]
+    sides = [(curr_y-step, curr_z-step), (curr_y-step, curr_z), (curr_y, curr_z-step)] + [(curr_y-step, curr_z+step), (curr_y+step, curr_z-step)] + [(curr_y+step, curr_z+step), (curr_y, curr_z+step), (curr_y+step, curr_z)]
+    sides = [side for side in sides if all(t >= 0 for t in side)]
     for side_y, side_z in sides:
         if (side_y, side_z) not in visited:
             tpm, ty_bar, tz_bar = get_convergence_values(global_var, data, W, X_m_init_vect_list, [side_y], [side_z], False)[0,0]
-            visited[(side_y, side_z)] = tpm, int(tpm*(1+ty_bar+tz_bar))
+            visited[(side_y, side_z)] = (tpm if tpm else global_var["T_PM"]), int(tpm*(1+ty_bar+tz_bar))
             print(f"\t{(side_y, side_z)} => {visited[(side_y, side_z)]}")
+
+            if visited[(side_y, side_z)][1] != 0 and visited[(side_y, side_z)][1] < visited[(curr_y, curr_z)][1]:
+                break
 
     min_y, min_z = min((k for k in visited if visited[k][1] != 0), key=lambda k: visited[k][1])
     while (curr_y, curr_z) != (min_y, min_z):
@@ -244,16 +236,34 @@ def search_opt_t_path(global_var, y, z, step, data, W, X_m_init_vect_list):
         curr_y, curr_z = min_y, min_z
         print(f"\n{(curr_y, curr_z)} => {visited[(curr_y, curr_z)]}")
 
-        sides = [(curr_y-step, curr_z), (curr_y+step, curr_z), (curr_y, curr_z-step), (curr_y, curr_z+step)]
+        sides = [(curr_y-step, curr_z-step), (curr_y-step, curr_z), (curr_y, curr_z-step)] + [(curr_y-step, curr_z+step), (curr_y+step, curr_z-step)] + [(curr_y+step, curr_z+step), (curr_y, curr_z+step), (curr_y+step, curr_z)]
+        sides = [side for side in sides if all(t >= 0 for t in side)]
         for side_y, side_z in sides:
             if (side_y, side_z) not in visited:
                 tpm, ty_bar, tz_bar = get_convergence_values(global_var, data, W, X_m_init_vect_list, [side_y], [side_z], False)[0,0]
-                visited[(side_y, side_z)] = tpm, int(tpm*(1+ty_bar+tz_bar))
+                visited[(side_y, side_z)] = (tpm if tpm else global_var["T_PM"]), int(tpm*(1+ty_bar+tz_bar))
                 print(f"\t{(side_y, side_z)} => {visited[(side_y, side_z)]}")
+
+                if visited[(side_y, side_z)][1] != 0 and visited[(side_y, side_z)][1] < visited[(curr_y, curr_z)][1]:
+                    break
 
         min_y, min_z = min((k for k in visited if visited[k][1] != 0), key=lambda k: visited[k][1])
 
-    return curr_y, curr_z
+    return visited, curr_y, curr_z
+
+
+
+def large_search_opt_t_path(global_var, y, z, step_list, data, W, X_m_init_vect_list):
+
+    curr_y, curr_z = y, z
+    visited = None
+
+    for step in step_list:
+        print(f"\nStep: {step}\n")
+        visited, curr_y, curr_z = search_opt_t_path(global_var, curr_y, curr_z, step, data, W, X_m_init_vect_list, visited)
+
+    return visited, curr_y, curr_z
+        
 
 
 
@@ -552,8 +562,6 @@ if __name__ == "__main__":
         ac_list.append(nx.algebraic_connectivity(nx.from_numpy_array(adjacency_matrix), method="lanczos"))
         #print(ac_list[-1])
 
-
-
     def fy(ac):
         return int(16.92*(ac**-0.568)-3.84)
 
@@ -561,54 +569,29 @@ if __name__ == "__main__":
         return int(42.05*(ac**-0.703))
 
 
-    """
-    for k in range(10, 15):
-        addY = k
-        addZ = k
 
-        global_var["NB_EDGE"] = m_list[i]
-        adjacency_matrix, pos = graph_list[i]
-        ac = ac_list[i]
-
-        adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, adjacency_matrix, pos)
-
-        Y = [fy(ac)-2+5*addY]
-        Z = [fz(ac)-2+5*addZ]
-        print(Y, Z)
-        T = get_convergence_values(global_var, data, W, X_m_init_vect_list, Y, Z)
-
-        if T[0,0][0] != 0:
-            search_opt_t_chunk(global_var, i, addY, addZ, m_list, graph_list, ac_list, data, W, X_m_init_vect_list, fy, fz)
-
-
-
-    print("Aucun résultat")
-    """
-    
-    """
-    i=0
-    addY = 3
-    addZ = 5
-    adjacency_matrix, pos = graph_list[i]
-    adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, adjacency_matrix, pos)
-    search_opt_t_chunk(global_var, i, addY, addZ, m_list, graph_list, ac_list, data, W, X_m_init_vect_list, fy, fz)
-    """
-    
-    i=0
+    i=1
     adjacency_matrix, pos = graph_list[i]
     adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var, adjacency_matrix, pos)
     show_graph(adjacency_matrix, pos)
-    print(f"{ac_list[i]}\n\n")
+    print(f"AC = {ac_list[i]}, fy(AC) = {fy(ac_list[i])}, fz(AC) = {fz(ac_list[i])}\n\n")
 
-    opt_y, opt_z = search_opt_t_path(global_var, 40, 120, 10, data, W, X_m_init_vect_list)
-    print("\nNew step\n")
-    opt_y, opt_z = search_opt_t_path(global_var, opt_y, opt_z, 3, data, W, X_m_init_vect_list)
-    print("\nNew step\n")
-    opt_y, opt_z = search_opt_t_path(global_var, opt_y, opt_z, 1, data, W, X_m_init_vect_list)
+    start_y, start_z = fy(ac_list[i]), fz(ac_list[i])
+    step_list = [30, 10, 3, 1]
+    visited, opt_y, opt_z = large_search_opt_t_path(global_var, start_y, start_z, step_list, data, W, X_m_init_vect_list)
 
-    Y = list(range(opt_y-2, opt_y+3))
-    Z = list(range(opt_z-2, opt_z+3))
-    T = get_convergence_values(global_var, data, W, X_m_init_vect_list, Y, Z)
-    convergence_table(Y, Z, T)
+    if visited[(opt_y, opt_z)][1] == 0:
+        print("\nNo result found.\n")
+    else:
+        print(f"\nLocal optimum: {opt_y}, {opt_z}\n")
+
+        Y = list(range(opt_y-5, opt_y+5+1))
+        Z = list(range(opt_z-5, opt_z+5+1))
+        T = get_convergence_values(global_var, data, W, X_m_init_vect_list, Y, Z)
+
+        a8e7 = [[[0.0, 23.0, 129.0], [0.0, 23.0, 130.0], [0.0, 23.0, 131.0], [0.0, 23.0, 132.0], [0.0, 23.0, 133.0], [0.0, 23.0, 134.0], [0.0, 23.0, 135.0], [0.0, 23.0, 136.0], [0.0, 23.0, 137.0], [0.0, 23.0, 138.0], [0.0, 23.0, 139.0]], [[0.0, 24.0, 129.0], [0.0, 24.0, 130.0], [0.0, 24.0, 131.0], [0.0, 24.0, 132.0], [0.0, 24.0, 133.0], [0.0, 24.0, 134.0], [0.0, 24.0, 135.0], [0.0, 24.0, 136.0], [0.0, 24.0, 137.0], [0.0, 24.0, 138.0], [0.0, 24.0, 139.0]], [[0.0, 25.0, 129.0], [0.0, 25.0, 130.0], [0.0, 25.0, 131.0], [0.0, 25.0, 132.0], [0.0, 25.0, 133.0], [0.0, 25.0, 134.0], [0.0, 25.0, 135.0], [0.0, 25.0, 136.0], [0.0, 25.0, 137.0], [2993.0, 25.0, 138.0], [2987.0, 25.0, 139.0]], [[0.0, 26.0, 129.0], [0.0, 26.0, 130.0], [0.0, 26.0, 131.0], [0.0, 26.0, 132.0], [0.0, 26.0, 133.0], [0.0, 26.0, 134.0], [0.0, 26.0, 135.0], [2996.0, 26.0, 136.0], [2987.0, 26.0, 137.0], [2979.0, 26.0, 138.0], [2972.0, 26.0, 139.0]], [[0.0, 27.0, 129.0], [0.0, 27.0, 130.0], [0.0, 27.0, 131.0], [0.0, 27.0, 132.0], [0.0, 27.0, 133.0], [0.0, 27.0, 134.0], [2993.0, 27.0, 135.0], [2983.0, 27.0, 136.0], [2973.0, 27.0, 137.0], [2966.0, 27.0, 138.0], [2959.0, 27.0, 139.0]], [[0.0, 28.0, 129.0], [0.0, 28.0, 130.0], [0.0, 28.0, 131.0], [0.0, 28.0, 132.0], [0.0, 28.0, 133.0], [2991.0, 28.0, 134.0], [2979.0, 28.0, 135.0], [2969.0, 28.0, 136.0], [2960.0, 28.0, 137.0], [2952.0, 28.0, 138.0], [2945.0, 28.0, 139.0]], [[0.0, 29.0, 129.0], [0.0, 29.0, 130.0], [0.0, 29.0, 131.0], [0.0, 29.0, 132.0], [2992.0, 29.0, 133.0], [2978.0, 29.0, 134.0], [2966.0, 29.0, 135.0], [2956.0, 29.0, 136.0], [2947.0, 29.0, 137.0], [2939.0, 29.0, 138.0], [2932.0, 29.0, 139.0]], [[0.0, 30.0, 129.0], [0.0, 30.0, 130.0], [0.0, 30.0, 131.0], [2996.0, 30.0, 132.0], [2980.0, 30.0, 133.0], [2966.0, 30.0, 134.0], [2954.0, 30.0, 135.0], [2943.0, 30.0, 136.0], [2934.0, 30.0, 137.0], [2926.0, 30.0, 138.0], [2919.0, 30.0, 139.0]], [[0.0, 31.0, 129.0], [0.0, 31.0, 130.0], [0.0, 31.0, 131.0], [2984.0, 31.0, 132.0], [2967.0, 31.0, 133.0], [2953.0, 31.0, 134.0], [2941.0, 31.0, 135.0], [2931.0, 31.0, 136.0], [2922.0, 31.0, 137.0], [2913.0, 31.0, 138.0], [2906.0, 31.0, 139.0]], [[0.0, 32.0, 129.0], [0.0, 32.0, 130.0], [2991.0, 32.0, 131.0], [2972.0, 32.0, 132.0], [2955.0, 32.0, 133.0], [2941.0, 32.0, 134.0], [2929.0, 32.0, 135.0], [2918.0, 32.0, 136.0], [2909.0, 32.0, 137.0], [2901.0, 32.0, 138.0], [2894.0, 32.0, 139.0]], [[0.0, 33.0, 129.0], [0.0, 33.0, 130.0], [2980.0, 33.0, 131.0], [2960.0, 33.0, 132.0], [2943.0, 33.0, 133.0], [2929.0, 33.0, 134.0], [2917.0, 33.0, 135.0], [2907.0, 33.0, 136.0], [2897.0, 33.0, 137.0], [2889.0, 33.0, 138.0], [2882.0, 33.0, 139.0]]]
+
+        add_title = f"CONVERGENCE_EPS = {global_var["CONVERGENCE_EPS"]}, AC = {ac_list[i]:.3f}"
+        convergence_table(Y, Z, T, add_title)
     
 
