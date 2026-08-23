@@ -230,26 +230,33 @@ def search_opt_t_path(global_var, y, z, step, data, W, X_m_init_vect_list, visit
             if visited[(side_y, side_z)][1] != 0 and visited[(side_y, side_z)][1] < visited[(curr_y, curr_z)][1]:
                 break
 
-    min_y, min_z = min((k for k in visited if visited[k][1] != 0), key=lambda k: visited[k][1])
-    while (curr_y, curr_z) != (min_y, min_z):
-
-        curr_y, curr_z = min_y, min_z
-        print(f"\n{(curr_y, curr_z)} => {visited[(curr_y, curr_z)]}")
-
-        sides = [(curr_y-step, curr_z-step), (curr_y-step, curr_z), (curr_y, curr_z-step)] + [(curr_y-step, curr_z+step), (curr_y+step, curr_z-step)] + [(curr_y+step, curr_z+step), (curr_y, curr_z+step), (curr_y+step, curr_z)]
-        sides = [side for side in sides if all(t >= 0 for t in side)]
-        for side_y, side_z in sides:
-            if (side_y, side_z) not in visited:
-                tpm, ty_bar, tz_bar = get_convergence_values(global_var, data, W, X_m_init_vect_list, [side_y], [side_z], False)[0,0]
-                visited[(side_y, side_z)] = (tpm if tpm else global_var["T_PM"]), int(tpm*(1+ty_bar+tz_bar))
-                print(f"\t{(side_y, side_z)} => {visited[(side_y, side_z)]}")
-
-                if visited[(side_y, side_z)][1] != 0 and visited[(side_y, side_z)][1] < visited[(curr_y, curr_z)][1]:
-                    break
-
+    try:
         min_y, min_z = min((k for k in visited if visited[k][1] != 0), key=lambda k: visited[k][1])
 
-    return visited, curr_y, curr_z
+    except ValueError:
+        print(f"\nExcept ValueError. Retry with step = {int(step*1.5)}\n")
+        return search_opt_t_path(global_var, y, z, int(step*1.5), data, W, X_m_init_vect_list, visited)
+
+    else:
+        while (curr_y, curr_z) != (min_y, min_z):
+
+            curr_y, curr_z = min_y, min_z
+            print(f"\n{(curr_y, curr_z)} => {visited[(curr_y, curr_z)]}")
+
+            sides = [(curr_y-step, curr_z-step), (curr_y-step, curr_z), (curr_y, curr_z-step)] + [(curr_y-step, curr_z+step), (curr_y+step, curr_z-step)] + [(curr_y+step, curr_z+step), (curr_y, curr_z+step), (curr_y+step, curr_z)]
+            sides = [side for side in sides if all(t >= 0 for t in side)]
+            for side_y, side_z in sides:
+                if (side_y, side_z) not in visited:
+                    tpm, ty_bar, tz_bar = get_convergence_values(global_var, data, W, X_m_init_vect_list, [side_y], [side_z], False)[0,0]
+                    visited[(side_y, side_z)] = (tpm if tpm else global_var["T_PM"]), int(tpm*(1+ty_bar+tz_bar))
+                    print(f"\t{(side_y, side_z)} => {visited[(side_y, side_z)]}")
+
+                    if visited[(side_y, side_z)][1] != 0 and visited[(side_y, side_z)][1] < visited[(curr_y, curr_z)][1]:
+                        break
+
+            min_y, min_z = min((k for k in visited if visited[k][1] != 0), key=lambda k: visited[k][1])
+
+        return visited, curr_y, curr_z
 
 
 
@@ -537,7 +544,7 @@ if __name__ == "__main__":
     global_var["P_DIM"] = 3
     global_var["L_DIM_LIST"] = generate_L_DIM_LIST(global_var)
     
-    global_var["T_PM"] = 4000
+    global_var["T_PM"] = 5000
     global_var["T_Y"] = 1000
     global_var["T_Z"] = 1000
 
