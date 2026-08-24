@@ -54,6 +54,23 @@ def generate_initial_vectors(global_var):
 
 
 
+def generate_initial_vectors_eye(global_var):
+    """
+    Initialize the P normalized initial vectors of dimension N for the problem with the canonical base.
+
+    return:
+        initial_vectors: list[list[list[float]]]
+    """
+    N_DIM = global_var["N_DIM"]
+    P_DIM = global_var["P_DIM"]
+    assert P_DIM < N_DIM, "global parameters aren't set correctly."
+
+    initial_vectors = None
+    raise Exception
+    return initial_vectors
+
+
+
 def covariance_matrix(global_var, X, l):
     """
     Create the covarance matrix S associated to the data matrix X.
