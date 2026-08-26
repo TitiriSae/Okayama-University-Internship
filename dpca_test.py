@@ -594,7 +594,7 @@ if __name__ == "__main__":
         print(f"AC = {ac_list[i]}, fy(AC) = {fy(ac_list[i])}, fz(AC) = {fz(ac_list[i])}\n\n")
 
         start_y, start_z = fy(ac_list[i]), fz(ac_list[i])
-        #start_y, start_z = 0, 18
+        #start_y, start_z = 0, 26
         step_list = [30, 10, 3, 1]
         #step_list = [1]
         visited, opt_y, opt_z = large_search_opt_t_path(global_var, start_y, start_z, step_list, data, W, X_m_init_vect_list)
