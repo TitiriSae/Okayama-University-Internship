@@ -65,8 +65,8 @@ def generate_initial_vectors_eye(global_var):
     P_DIM = global_var["P_DIM"]
     assert P_DIM < N_DIM, "global parameters aren't set correctly."
 
-    initial_vectors = None
-    raise Exception
+    eye = np.eye(P_DIM, N_DIM)
+    initial_vectors = [np.array([[col] for col in row]) for row in eye]
     return initial_vectors
 
 
@@ -298,7 +298,7 @@ if __name__ == "__main__":
 
 
     X = generate_data_matrix(global_var, global_var["L_DIM"])
-    initial_vectors = generate_initial_vectors(global_var)
+    initial_vectors = generate_initial_vectors_eye(global_var)
     S = covariance_matrix(global_var, X, global_var["L_DIM"])
     Lambda, Q = spectral_decomposition(S)
     

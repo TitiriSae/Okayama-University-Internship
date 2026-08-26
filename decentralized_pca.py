@@ -1,5 +1,5 @@
 from distributed_averaging import generate_graph, init_graph, init_initial_values, init_local_degree_weight_cao, distributed_linear_iteration, show_graph
-from power_method import generate_data_matrix, generate_initial_vectors, covariance_matrix, spectral_decomposition
+from power_method import generate_data_matrix, generate_initial_vectors_eye, covariance_matrix, spectral_decomposition
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -30,7 +30,7 @@ def generate_L_DIM_LIST(global_var, *, l_max=None, l_dim_list=None):
 
 
 
-def init_decentralized_PCA(global_var, adjacency_matrix=None, pos=None):
+def init_decentralized_PCA(global_var, *, adjacency_matrix=None, pos=None, W=None, X_m_init_vect_list=None):
     """
     Initialize an instance of the decentralized algorithm for PCA.
 
@@ -54,10 +54,12 @@ def init_decentralized_PCA(global_var, adjacency_matrix=None, pos=None):
     data = init_graph(global_var, adjacency_matrix)
 
     #Initialization of the weights matrix
-    W = init_local_degree_weight_cao(global_var, data)
+    if W is None:
+        W = init_local_degree_weight_cao(global_var, data)
 
     #Initialization of the data and initial vectors for the PCA instances for each agent
-    X_m_init_vect_list = [(generate_data_matrix(global_var, L_DIM_LIST[m]), generate_initial_vectors(global_var)) for m in range(NB_AGENT)]
+    if X_m_init_vect_list is None:
+        X_m_init_vect_list = [(generate_data_matrix(global_var, L_DIM_LIST[m]), generate_initial_vectors_eye(global_var)) for m in range(NB_AGENT)]
 
     #Adding global data, optimal matrix of eigenvectors, and the weight matrix to the data
     X = np.hstack([X_m_init_vect_list[m][0] for m in range(NB_AGENT)])
