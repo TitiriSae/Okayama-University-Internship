@@ -49,7 +49,7 @@ ac_y = [
 (4.0, 0),
 (6.0, 0),
 
-#fixed seed22
+#fixed seed 22_X
 
 (0.16671700823775712, 1),
 (0.3186693563950216, 1),
@@ -58,6 +58,17 @@ ac_y = [
 (1.8926644174974205, 0),
 (2.7381977547400305, 0),
 (4.0, 0),
+(6.0, 0),
+
+#fixed seed 22_1
+
+(0.15224093497742663, 1),
+(0.37565089916577926, 2),
+(0.35424868893541, 1),
+(0.8793434264453559, 1),
+(2.1442274933640135, 0),
+(3.186393497351668, 1),
+(5.0, 0),
 (6.0, 0)
 
 ]
@@ -118,48 +129,17 @@ ac_z = [
 (1.8926644174974205, 27),
 (2.7381977547400305, 18),
 (4.0, 13),
+(6.0, 6),
+
+#fixed seed 22_1
+
+(0.15224093497742663, 167),
+(0.37565089916577926, 104),
+(0.35424868893541, 97),
+(0.8793434264453559, 55),
+(2.1442274933640135, 23),
+(3.186393497351668, 17),
+(5.0, 8),
 (6.0, 6)
 
 ]
-
-
-
-from dpca_test import fy, fz
-
-
-
-for ac, y in ac_y[:-1]:
-    print(ac, y, fy(ac))
-
-print()
-
-for ac, z in ac_z[:-1]:
-    print(ac, z, fz(ac))
-
-print()
-
-
-créer une fonction représentative de ces points sachant que le premier lot de points peut est un peut plus correct que le second lot de points (donc les prendre un peu moins en compte que le premier lot):
-
-
-
-lot 1:
-
-
-
-def algebraic_connectivity_plot(scatter_plot, ax_y_label, ):
-
-    x, y = [], []
-    for point in scatter_plot:
-        x.append(point[0])
-        y.append(point[1])
-
-    plt.scatter(x, y)
-
-    plt.xlabel("Algebraic connectivity")
-    plt.ylabel(ax_y_label)
-    plt.title(f"Scatter plot of the {ax_y_label} as a function of Algebraic connectivity")
-
-    plt.grid(True)
-    plt.show()
-    
