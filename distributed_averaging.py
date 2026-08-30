@@ -297,9 +297,9 @@ def plot(global_var, data, i=None):
             _plot_x_i_t(data, i, cmap(i/(NB_AGENT)))
 
 
-    plt.title(label=f'Evolution of x_i(t)')
+    plt.title(label=fr'Evolution of $x_i(t)$')
     plt.xlabel(xlabel='t')
-    plt.ylabel(ylabel=f'x_i(t)')
+    plt.ylabel(ylabel=fr'$x_i(t)$')
 
     if i==None:
         _plot_x_t(data)
@@ -312,7 +312,7 @@ def plot(global_var, data, i=None):
     else:
         raise KeyError
         
-    plt.axhline(y=get_consensus_val(data), color='red', linestyle='--', linewidth=0.75, label=f'consensus_value = {get_consensus_val(data):.3f}')
+    plt.axhline(y=get_consensus_val(data), color='red', linestyle='--', linewidth=0.75, label=fr'$\bar{{x}}(0)$ = {get_consensus_val(data):.2f}')
 
     plt.legend(fontsize='small', bbox_to_anchor=(1.05, 1), ncol=max(1, NB_AGENT//20+1))
     plt.show()
@@ -325,16 +325,16 @@ if __name__ == "__main__":
 
     global_var = dict()
 
-    global_var["SEED"] = 15
-    np.random.seed(global_var["SEED"])
+    global_var["SEED"] = 42
+    #np.random.seed(global_var["SEED"])
 
     global_var["VAL_RANGE"] = 100
 
     #Number of nodes NB_AGENT
     #Number of edges NB_EDGE
     #Number of iteration T_DA
-    global_var["NB_AGENT"] = 8
-    global_var["NB_EDGE"] = 20
+    global_var["NB_AGENT"] = 100
+    global_var["NB_EDGE"] = 500
 
     #global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 7
     star_g = np.array([
@@ -385,21 +385,20 @@ if __name__ == "__main__":
     ])
 
     complete_g = nx.to_numpy_array(nx.convert_node_labels_to_integers(nx.complete_graph(16), first_label=1), dtype=int)
-    global_var["NB_AGENT"], global_var["NB_EDGE"] = len(complete_g), int(np.sum(complete_g)/2)
+    #global_var["NB_AGENT"], global_var["NB_EDGE"] = len(complete_g), int(np.sum(complete_g)/2)
 
 
-    global_var["T_DA"] = 10000
+    global_var["T_DA"] = 300
 
-    global_var["CONSENSUS_EPS"] = 1e-10
-
-
+    global_var["CONSENSUS_EPS"] = 1e-2
 
 
-    #Example of a adjacency matrix of an undirected graph
+
     """
-    N = 8
-    M = 9
-    T = 30
+    #Example of a adjacency matrix of an undirected graph
+    
+    global_var["NB_AGENT"] = 8
+    global_var["NB_EDGE"] = 9
 
     n1 = np.array([0, 1, 1, 0, 1, 0, 1, 0])
     n2 = np.array([1, 0, 0, 0, 0, 0, 0, 0])
@@ -412,7 +411,6 @@ if __name__ == "__main__":
 
     adj = np.array([n1, n2, n3, n4, n5, n6, n7, n8])
     x_0 = np.array([4, 3, 2, 1, 6, 5, 4, 7])
-    show_graph(adj)
     """
 
     #Random generation
@@ -440,8 +438,9 @@ if __name__ == "__main__":
 
         plot(global_var, data)
     """
-    
-    adjacency_matrix, pos = complete_g, None
+
+    adjacency_matrix, pos = generate_graph(global_var)
+    #adjacency_matrix, pos = adj, None
 
     data = init_graph(global_var, adjacency_matrix)
     show_graph(adjacency_matrix)
@@ -451,6 +450,7 @@ if __name__ == "__main__":
 
     W = init_local_degree_weight_cao(global_var, data)
 
+    print(sorted(np.linalg.eigvals(W), reverse=True))
     print(sorted(abs(np.linalg.eigvals(W - (1/global_var["NB_AGENT"])*np.ones((global_var["NB_AGENT"], global_var["NB_AGENT"])))), reverse=True))
 
     #Algorithm 
