@@ -169,8 +169,12 @@ def update_rule(global_var, X, initial_vectors, l):
             ui_t1 = ui_t1 + K2 * (S @ data[i][t])
             ui_t1 = ui_t1 * EPS + data[i][t]
 
-            ui_t1 /= np.linalg.norm(ui_t1)
+            #ui_t1 /= np.linalg.norm(ui_t1)
             data[i].append(ui_t1)
+
+        for i in range(1, P_DIM+1):
+            ui_t1 = data[i][t+1]
+            data[i][t+1] = ui_t1 / np.linalg.norm(ui_t1)
     
     U = get_U_t(global_var, data, T_PM)
     return data, U
@@ -235,28 +239,28 @@ def plot(global_var, data, Q, i=None, *, pm=False):
         return [_get_norm_unsigned_U_t_QP(data, t, Q) for t in range(t0, t1+1)]
 
 
-    plt.title(label=f"Evolution of the distance between U = (u1 ... uP) and Q' = (q1 ... qP)")
+    plt.title(label=fr"Evolution of the error between U(t) = ($u_1$ ... $u_{{P_{{dim}}}}$) and $Q_{{P_{{dim}}}}$ = ($q_1$ ... $q_{{P_{{dim}}}}$)")
     plt.xlabel(xlabel="t")
-    plt.ylabel(ylabel=f"Distance between U and Q")
+    plt.ylabel(ylabel=f"Error between U(t) and $Q_{{P_{{dim}}}}$")
 
     if i == None:
-        plt.plot(np.arange(len(data[1])), _get_norm_unsigned_U_t_QP_range(data, Q), label="U, Q'")
+        plt.plot(np.arange(len(data[1])), _get_norm_unsigned_U_t_QP_range(data, Q), label=r"U(t), $Q_{P_{dim}}$")
     elif i == 0:
         cmap = plt.get_cmap('plasma')
         for j in range(1, P_DIM+1):
             if pm:
                 #Verification that data is computed with the classical power method
                 assert len(data[1]) == T_PM*P_DIM+1, "data isn't computed with the power_method function. Please set pm=False."
-                plt.plot(np.arange(T_PM*(j-1), T_PM*j+1), _get_norm_unsigned_ui_t_qi_range(data, j, Q, T_PM*(j-1), T_PM*j), color=cmap(j/(P_DIM)), label=f"u{j}(t), q{j}")
+                plt.plot(np.arange(T_PM*(j-1), T_PM*j+1), _get_norm_unsigned_ui_t_qi_range(data, j, Q, T_PM*(j-1), T_PM*j), color=cmap(j/(P_DIM)), label=fr"$u_{{{j}}}(t)$, $q_{{{j}}}$")
             else:
-                plt.plot(np.arange(len(data[1])), _get_norm_unsigned_ui_t_qi_range(data, j, Q), color=cmap(j/P_DIM), label=f"u{j}(t), q{j}")
+                plt.plot(np.arange(len(data[1])), _get_norm_unsigned_ui_t_qi_range(data, j, Q), color=cmap(j/P_DIM), label=fr"$u_{{{j}}}(t)$, $q_{{{j}}}$")
 
     elif i == -1:
         for a in range(1, P_DIM+1):
             plot(data, Q, a)
         return
     elif 1 <= i <= P_DIM:
-        plt.plot(np.arange(len(data[1])), _get_norm_unsigned_ui_t_qi_range(data, i, Q), label=f"u{i}(t), q{i}")
+        plt.plot(np.arange(len(data[1])), _get_norm_unsigned_ui_t_qi_range(data, i, Q), label=fr"$u_{{{i}}}(t)$, $q_{{{i}}}$")
     else:
         raise KeyError("i does not correspond to any principal component's id.")
 
@@ -280,10 +284,10 @@ if __name__ == "__main__":
     #Number of sample L_DIM
     #Number of dimension of the subspace P_DIM
     #Number of iteration T_PM per principal component
-    global_var["N_DIM"] = 10
-    global_var["L_DIM"] = 15
-    global_var["P_DIM"] = 6
-    global_var["T_PM"] = 5000
+    global_var["N_DIM"] = 50
+    global_var["L_DIM"] = 95
+    global_var["P_DIM"] = 5
+    global_var["T_PM"] = 100
 
     global_var["K1"] = 0.2
     global_var["K2"] = 0.4
@@ -293,19 +297,18 @@ if __name__ == "__main__":
     assert global_var["N_DIM"] < global_var["L_DIM"], "global parameters aren't set correctly."
     assert global_var["P_DIM"] < global_var["N_DIM"], "global parameters aren't set correctly."
 
-    global_var["CONVERGENCE_VAL"] = 1e-10
-
 
 
     X = generate_data_matrix(global_var, global_var["L_DIM"])
-    initial_vectors = generate_initial_vectors_eye(global_var)
+    initial_vectors = generate_initial_vectors(global_var)
     S = covariance_matrix(global_var, X, global_var["L_DIM"])
     Lambda, Q = spectral_decomposition(S)
     
     data, U = power_method(global_var, X, initial_vectors, global_var["L_DIM"])
     plot(global_var, data, Q, pm=True)
     plot(global_var, data, Q, 0, pm=True)
-    
+
+    global_var["T_PM"] = 20000
     data1, U1 = update_rule(global_var, X, initial_vectors, global_var["L_DIM"])
     plot(global_var, data1, Q)
     plot(global_var, data1, Q, 0)
