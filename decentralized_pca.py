@@ -1,5 +1,5 @@
 from distributed_averaging import generate_graph, init_graph, init_initial_values, init_local_degree_weight_cao, distributed_linear_iteration, show_graph
-from power_method import generate_data_matrix, generate_initial_vectors_eye, covariance_matrix, spectral_decomposition
+from power_method import generate_data_matrix, generate_initial_vectors, generate_initial_vectors_eye, covariance_matrix, spectral_decomposition
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -59,7 +59,8 @@ def init_decentralized_PCA(global_var, *, adjacency_matrix=None, pos=None, W=Non
 
     #Initialization of the data and initial vectors for the PCA instances for each agent
     if X_m_init_vect_list is None:
-        X_m_init_vect_list = [(generate_data_matrix(global_var, L_DIM_LIST[m]), generate_initial_vectors_eye(global_var)) for m in range(NB_AGENT)]
+        X_m_init_vect_list = [(generate_data_matrix(global_var, L_DIM_LIST[m]), generate_initial_vectors(global_var)) for m in range(NB_AGENT)]
+        #X_m_init_vect_list = [(generate_data_matrix(global_var, L_DIM_LIST[m]), generate_initial_vectors_eye(global_var)) for m in range(NB_AGENT)]
 
     #Adding global data, optimal matrix of eigenvectors, and the weight matrix to the data
     X = np.hstack([X_m_init_vect_list[m][0] for m in range(NB_AGENT)])
@@ -224,6 +225,7 @@ def update_rule_t(global_var, data, t):
     NB_AGENT = global_var["NB_AGENT"]
     P_DIM = global_var["P_DIM"]
     L_DIM_LIST = global_var["L_DIM_LIST"]
+    L_DIM = sum(L_DIM_LIST)
     K1 = global_var["K1"]
     K2 = global_var["K2"]
     EPS = global_var["EPS"]
@@ -232,12 +234,16 @@ def update_rule_t(global_var, data, t):
         for p in range(P_DIM):
             
             up_m_t = -K1 * sum(data[m]["Y"][t][j] @ data[m]["Y"][t][j].T @ data[m]["Y"][t][p] for j in range(p))
-            up_m_t = up_m_t + K2 * (NB_AGENT/L_DIM_LIST[m-1]) * data[m]["Z"][t][p]
+            #up_m_t = up_m_t + K2 * (NB_AGENT/L_DIM_LIST[m-1]) * data[m]["Z"][t][p]
+            up_m_t = up_m_t + K2 * (NB_AGENT/L_DIM) * data[m]["Z"][t][p]
             up_m_t = data[m]["U"][t][p] + EPS * up_m_t
 
-            up_m_t /= np.linalg.norm(up_m_t)
+            #up_m_t /= np.linalg.norm(up_m_t)
             data[m]["U"][t+1].append(up_m_t)
 
+        for p in range(P_DIM):
+            up_m_t1 = data[m]["U"][t+1][p]
+            data[m]["U"][t+1][p] = up_m_t1 / np.linalg.norm(up_m_t1)
 
 
 def plot(global_var, data, m=None, p=None, *, show=True, label=None, color=None):
@@ -319,15 +325,15 @@ def plot(global_var, data, m=None, p=None, *, show=True, label=None, color=None)
 
         if p == None:
             if label==None:
-                label=f"U_(t), Q'"
+                label=fr"U(t), $Q_{{P_{{dim}}}}$"
             plt.plot(np.arange(T_PM+1), _get_norm_unsigned_U_t_QP_range(data), label=label, color=color)
 
         elif p == 0:
             for p0 in range(1, P_DIM+1):
-                plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_t_qp_range(data, p0), color=cmap(p0/P_DIM), label=f"u{p0}_(t), q{p0}")
+                plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_t_qp_range(data, p0), color=cmap(p0/P_DIM), label=f"$u_{{{p0}}}(t)$, $q_{{{p0}}}$")
 
         elif 1 <= p <= P_DIM:
-            plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_t_qp_range(data, p), label=f"u{p}_(t), q{p}")
+            plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_t_qp_range(data, p), label=fr"$u_{{{p}}}_(t)$, $q_{{{p}}}$")
 
         else:
             raise KeyError("argument p is invalid.")
@@ -336,14 +342,14 @@ def plot(global_var, data, m=None, p=None, *, show=True, label=None, color=None)
     
         for m0 in range(1, NB_AGENT+1):
             if p == None:
-                plt.plot(np.arange(T_PM+1), _get_norm_unsigned_U_m_t_QP_range(data, m0), color=cmap(m0/NB_AGENT), label=f"U_{m0}(t), Q'")
+                plt.plot(np.arange(T_PM+1), _get_norm_unsigned_U_m_t_QP_range(data, m0), color=cmap(m0/NB_AGENT), label=fr"$U_{{{m0}}}(t)$, $Q_{{P_{{dim}}}}$")
             
             elif p == 0:
                 for p0 in range(1, P_DIM+1):
-                    plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_m_t_qp_range(data, p0, m0), color=cmap((p0+m0+(m0-1)*(P_DIM-1))/(P_DIM*NB_AGENT)), label=f"u{p0}_{m0}_(t), q{p0}")
+                    plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_m_t_qp_range(data, p0, m0), color=cmap((p0+m0+(m0-1)*(P_DIM-1))/(P_DIM*NB_AGENT)), label=fr"$u_{{{p0},{m0}}}(t)$, $q_{{{p0}}}$")
             
             elif 1 <= p <= P_DIM:
-                plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_m_t_qp_range(data, p, m0), color=cmap(m0/NB_AGENT), label=f"u{p}_{m0}_(t), q{p}")
+                plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_m_t_qp_range(data, p, m0), color=cmap(m0/NB_AGENT), label=fr"$u_{{{p},{m0}}}(t)$, q_{{{p}}}")
             
             else:
                 raise KeyError("argument p is invalid.")
@@ -351,14 +357,14 @@ def plot(global_var, data, m=None, p=None, *, show=True, label=None, color=None)
     elif 1 <= m <= NB_AGENT:
 
         if p == None:
-            plt.plot(np.arange(T_PM+1), _get_norm_unsigned_U_m_t_QP_range(data, m), label=f"U_{m}(t), Q'")
+            plt.plot(np.arange(T_PM+1), _get_norm_unsigned_U_m_t_QP_range(data, m), label=fr"$U_{{{m}}}(t)$, $Q_{{P_{{dim}}}}$")
         
         elif p == 0:
             for p0 in range(1, P_DIM+1):
-                plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_m_t_qp_range(data, p0, m), color=cmap(p0/P_DIM), label=f"u{p0}_{m}_(t), q{p0}")
+                plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_m_t_qp_range(data, p0, m), color=cmap(p0/P_DIM), label=fr"$u_{{{p0},{m}}}(t)$, $q_{{{p0}}}$")
         
         elif 1 <= p <= P_DIM:
-            plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_m_t_qp_range(data, p, m), label=f"u{p}_{m}_(t), q{p}")
+            plt.plot(np.arange(T_PM+1), _get_norm_unsigned_up_m_t_qp_range(data, p, m), label=fr"$u_{{{p},{m}}}(t)$, $q_{{{p}}}$")
         
         else:
             raise KeyError("argument p is invalid.")
@@ -367,9 +373,9 @@ def plot(global_var, data, m=None, p=None, *, show=True, label=None, color=None)
         raise KeyError("argument m is invalid.")
 
     if show:
-        plt.title(label=f"Evolution of the distance between U = (u1 ... uP) and Q' = (q1 ... qP)")
+        plt.title(label=fr"Evolution of the error between U(t) = ($u_1$ ... $u_{{P_{{dim}}}}$) and $Q_{{P_{{dim}}}}$ = ($q_1$ ... $q_{{P_{{dim}}}}$)")
         plt.xlabel(xlabel="t")
-        plt.ylabel(ylabel=f"Distance between U and Q")
+        plt.ylabel(ylabel=f"Error between U(t) and $Q_{{P_{{dim}}}}$")
         
         plt.axhline(y=0, color='red', linestyle='--', linewidth=0.75, label=f'0')
         plt.legend(fontsize='small', bbox_to_anchor=(1.05, 1), ncol=max(1, (m0*p0)//20+1))
@@ -394,14 +400,14 @@ if __name__ == "__main__":
 
     global_var = dict()
 
-    global_var["SEED"] = 15
+    global_var["SEED"] = 42
     np.random.seed(global_var["SEED"])
 
     #Number of agents NB_AGENT
     #Number of edges NB_EDGE
     #Number of iteration for the distributed linear iteration for Y and Z T_Y T_Z
-    global_var["NB_AGENT"] = 10
-    global_var["NB_EDGE"] = 30
+    global_var["NB_AGENT"] = 20
+    global_var["NB_EDGE"] = 50
 
 
 
@@ -455,18 +461,18 @@ if __name__ == "__main__":
 
 
 
-    global_var["T_Y"] = 1000
-    global_var["T_Z"] = 1000
+    global_var["T_Y"] = 300
+    global_var["T_Z"] = 300
 
     #Dimension of a data N_DIM
     #Number of principal component wanted P_DIM
-    global_var["N_DIM"] = 5
-    global_var["P_DIM"] = 3
+    global_var["N_DIM"] = 20
+    global_var["P_DIM"] = 10
 
     #Number of data sample for each agent L_DIM_LIST
     #Number of iteration for the update rule T_PM
     global_var["L_DIM_LIST"] = generate_L_DIM_LIST(global_var)
-    global_var["T_PM"] = 10
+    global_var["T_PM"] = 10000
 
     #Parameter of the update rule K1
     #Parameter of the update rule K2
@@ -475,15 +481,17 @@ if __name__ == "__main__":
     global_var["K2"] = 0.4
     global_var["EPS"] = 0.1
 
-    global_var["CONSENSUS_EPS"] = 1e-8
-    global_var["CONVERGENCE_EPS"] = 1e-10
+    global_var["CONSENSUS_EPS"] = 1e-2
+    global_var["CONVERGENCE_EPS"] = 1e-2
 
 
 
     adjacency_matrix, pos, data, W, X_m_init_vect_list = init_decentralized_PCA(global_var)
     show_graph(adjacency_matrix, pos)
+    print(global_var["L_DIM_LIST"])
+
 
     decentralized_PCA(global_var, data, W, X_m_init_vect_list)
 
-    check_accuracy(global_var, data, [10**-i for i in range(1, 6)])
+    #check_accuracy(global_var, data, [10**-i for i in range(1, 6)])
     plot(global_var, data)
