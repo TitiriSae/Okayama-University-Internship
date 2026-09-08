@@ -1,8 +1,3 @@
-#aled
-
-#CONVERGENCE_EPS = 1e-8
-
-#from dpca_test import algebraic_connectivity_plot
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -197,6 +192,13 @@ ac_z_8_22_13 = [
     (6.0, 6)
 ]
 
+scatter_plot_y_not_fixed = ac_y_7 + ac_y_8_22 + ac_y_8_23 + ac_y_8_24
+scatter_plot_z_not_fixed = ac_z_7 + ac_z_8_22 + ac_z_8_23 + ac_z_8_24
+scatter_plot_y_fixed = ac_y_8_22_X + ac_y_8_22_1 + ac_y_8_22_13
+scatter_plot_z_fixed = ac_z_8_22_X + ac_z_8_22_1 + ac_z_8_22_13
+scatter_plot_y = scatter_plot_y_not_fixed + scatter_plot_y_fixed
+scatter_plot_z = scatter_plot_z_not_fixed + scatter_plot_z_fixed
+
 
 def algebraic_connectivity_plot(scatter_plot, ax_y_label, option, add_title=""):
     """
@@ -212,9 +214,9 @@ def algebraic_connectivity_plot(scatter_plot, ax_y_label, option, add_title=""):
         y.append(point[1])
 
     if option == 1:
-        plt.scatter(x, y, s=40, color="red")
+        plt.scatter(x, y, s=40, color="red", label="fixed initial vectors in DPCA")
     elif option == 0:
-        plt.scatter(x, y, s=20, color="blue")
+        plt.scatter(x, y, s=20, color="blue", label="random initial vectors in DPCA")
 
     plt.xlabel("Algebraic connectivity")
     plt.ylabel(ax_y_label)
@@ -223,71 +225,42 @@ def algebraic_connectivity_plot(scatter_plot, ax_y_label, option, add_title=""):
     plt.grid(True)
     #plt.show()
 
-scatter_plot_y_not_fixed = ac_y_7 + ac_y_8_22 + ac_y_8_23 + ac_y_8_24
-scatter_plot_z_not_fixed = ac_z_7 + ac_z_8_22 + ac_z_8_23 + ac_z_8_24
-scatter_plot_y_fixed = ac_y_8_22_X + ac_y_8_22_1 + ac_y_8_22_13
-scatter_plot_z_fixed = ac_z_8_22_X + ac_z_8_22_1 + ac_z_8_22_13
-scatter_plot_y = scatter_plot_y_not_fixed + scatter_plot_y_fixed
-scatter_plot_z = scatter_plot_z_not_fixed + scatter_plot_z_fixed
 
 
-if __name__ == "__main__0":
 
-    scatter_plot_y_not_fixed = ac_y_7 + ac_y_8_22 + ac_y_8_23 + ac_y_8_24
-    scatter_plot_z_not_fixed = ac_z_7 + ac_z_8_22 + ac_z_8_23 + ac_z_8_24
-    scatter_plot_y_fixed = ac_y_8_22_X + ac_y_8_22_1 + ac_y_8_22_13
-    scatter_plot_z_fixed = ac_z_8_22_X + ac_z_8_22_1 + ac_z_8_22_13
-    scatter_plot_y = scatter_plot_y_not_fixed + scatter_plot_y_fixed
-    scatter_plot_z = scatter_plot_z_not_fixed + scatter_plot_z_fixed
+if __name__ == "__main__":
 
+    def fy_continuous(ac):
+        return 1.35 / (1 + np.exp(8 * (ac - 0.40)))
 
-    algebraic_connectivity_plot(scatter_plot_y_not_fixed, "Best value of T_Y", 0, "| random u_p(0)")
-    plt.show()
-    algebraic_connectivity_plot(scatter_plot_z_not_fixed, "Best value of T_Z", 0, "| random u_p(0)")
-    plt.show()
+    def fz_continuous(ac):
+        return 58.13 / (ac + 0.178) ** 0.962 - 2.45
 
-    algebraic_connectivity_plot(scatter_plot_y_fixed, "Best value of T_Y", 1, "| fixed u_p(0)")
-    plt.show()
-    algebraic_connectivity_plot(scatter_plot_z_fixed, "Best value of T_Z", 1, "| fixed u_p(0)")
-    plt.show()
+    ac = np.linspace(0.01, 8, 1000)
+
 
     algebraic_connectivity_plot(scatter_plot_y_not_fixed, "Best value of T_Y", 0)
     algebraic_connectivity_plot(scatter_plot_y_fixed, "Best value of T_Y", 1)
+
+    #plt.plot(ac, fy_continuous(ac), label="f_Y = 1.35 / (1 + np.exp(8 * (ac - 0.40)))", color="green")
+    #plt.plot(ac, fy_continuous(ac), "--", color="green")
+    plt.legend()
     plt.show()
+
 
     algebraic_connectivity_plot(scatter_plot_z_not_fixed, "Best value of T_Z", 0)
     algebraic_connectivity_plot(scatter_plot_z_fixed, "Best value of T_Z", 1)
+
+    #plt.plot(ac, fz_continuous(ac), label="58.13 / (ac + 0.178) ** 0.962 - 2.45", color="green")
+    #plt.plot(ac, fz_continuous(ac), "--", color="green")
+    plt.legend()
     plt.show()
 
 
 
 
 
-def fy_continuous(ac):
-    return 1.35 / (1 + np.exp(8 * (ac - 0.40)))
-
-
-def fz_continuous(ac):
-    return 58.13 / (ac + 0.178) ** 0.962 - 2.45
-
-
-ac = np.linspace(0.01, 8, 1000)
-
-
-
-algebraic_connectivity_plot(scatter_plot_y_not_fixed, "Best value of T_Y", 0)
-algebraic_connectivity_plot(scatter_plot_y_fixed, "Best value of T_Y", 1)
-
-plt.plot(ac, fy_continuous(ac), label="f_Y = 1.35 / (1 + np.exp(8 * (ac - 0.40)))", color="green")
-plt.legend()
-plt.show()
 
 
 
 
-algebraic_connectivity_plot(scatter_plot_z_not_fixed, "Best value of T_Z", 0)
-algebraic_connectivity_plot(scatter_plot_z_fixed, "Best value of T_Z", 1)
-
-plt.plot(ac, fz_continuous(ac), label="58.13 / (ac + 0.178) ** 0.962 - 2.45", color="green")
-plt.legend()
-plt.show()
