@@ -481,8 +481,8 @@ if __name__ == "__main__":
     global_var["K2"] = 0.4
     global_var["EPS"] = 0.1
 
-    global_var["CONSENSUS_EPS"] = 1e-2
-    global_var["CONVERGENCE_EPS"] = 1e-2
+    global_var["CONSENSUS_EPS"] = 1e-8
+    global_var["CONVERGENCE_EPS"] = 1e-8
 
 
 
@@ -493,5 +493,5 @@ if __name__ == "__main__":
 
     decentralized_PCA(global_var, data, W, X_m_init_vect_list)
 
-    #check_accuracy(global_var, data, [10**-i for i in range(1, 6)])
+    check_accuracy(global_var, data, [10**-i for i in range(1, 8)])
     plot(global_var, data)

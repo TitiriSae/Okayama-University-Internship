@@ -333,8 +333,19 @@ if __name__ == "__main__":
     #Number of nodes NB_AGENT
     #Number of edges NB_EDGE
     #Number of iteration T_DA
-    global_var["NB_AGENT"] = 100
-    global_var["NB_EDGE"] = 500
+    global_var["NB_AGENT"] = 5
+    global_var["NB_EDGE"] = 7
+
+    global_var["NB_AGENT"], global_var["NB_EDGE"] = 6, 5
+    A = np.array([
+        [0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 1, 0, 0],
+        [1, 1, 1, 0, 1, 0],
+        [0, 0, 0, 1, 0, 1],
+        [0, 0, 0, 0, 1, 0]
+    ])
+
 
     #global_var["NB_AGENT"], global_var["NB_EDGE"] = 8, 7
     star_g = np.array([
@@ -440,7 +451,7 @@ if __name__ == "__main__":
     """
 
     adjacency_matrix, pos = generate_graph(global_var)
-    #adjacency_matrix, pos = adj, None
+    adjacency_matrix, pos = A, None
 
     data = init_graph(global_var, adjacency_matrix)
     show_graph(adjacency_matrix)
@@ -449,6 +460,8 @@ if __name__ == "__main__":
     init_initial_values(global_var, data, x_0)
 
     W = init_local_degree_weight_cao(global_var, data)
+    for w in W:
+        print(w)
 
     print(sorted(np.linalg.eigvals(W), reverse=True))
     print(sorted(abs(np.linalg.eigvals(W - (1/global_var["NB_AGENT"])*np.ones((global_var["NB_AGENT"], global_var["NB_AGENT"])))), reverse=True))
