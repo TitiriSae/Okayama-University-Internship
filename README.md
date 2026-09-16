@@ -41,17 +41,19 @@ Required packages:
 * Q. Cao, K. Hattori, N. Takahashi, and T. Migita, *A Novel Iterative Method for PCA*, IEEE iEECON 2026.
 * J. Xiao and A. D. Boyd, *Fast Linear Iterations for Distributed Averaging*, Systems & Control Letters, 2004.
 
-Additional papers and references used during the project are available in **`Papers/`**.
-
 ## Internship
 
 **Okayama University, Japan**
+
 **June 23 – September 10, 2026**
+
 **Supervisor:** Prof. Norikazu Takahashi
+
 **Program:** Special Research Student
 
 ## Author
 
 **Thierry Sae-Lim**
 Master's student in Artificial Intelligence and Computer Science
+
 **Sorbonne Université, France**
