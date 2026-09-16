@@ -18,8 +18,6 @@ The objective is to allow multiple agents to collaboratively compute the princip
 
 ## Requirements
 
-The project is implemented in **Python 3**.
-
 Required packages:
 
 * [NumPy](https://numpy.org/)
